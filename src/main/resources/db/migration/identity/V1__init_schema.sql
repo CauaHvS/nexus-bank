@@ -1,0 +1,2 @@
+-- Schema criado pelo Flyway via FlywayConfig (schemas.identity)
+-- Migrations de tabelas serão adicionadas nas fatias seguintes.

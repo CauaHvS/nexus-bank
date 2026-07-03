@@ -1,0 +1,2 @@
+-- Schema criado pelo Flyway via FlywayConfig (schemas.payments)
+-- Migrations de tabelas serão adicionadas nas fatias seguintes.

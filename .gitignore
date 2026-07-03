@@ -10,3 +10,9 @@ target/
 .classpath
 .project
 *.log
+
+# Variáveis de ambiente locais — nunca commitar
+.env
+
+# Volumes do Docker criados localmente
+docker/volumes/

@@ -1,0 +1,2 @@
+-- Schema criado pelo Flyway via FlywayConfig (schemas.fraud)
+-- Migrations de tabelas serão adicionadas nas fatias seguintes.
