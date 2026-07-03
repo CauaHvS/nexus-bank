@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Nexus Bank — Carteira</title>
+  <link rel="stylesheet" href="../design-system.css" />
+  <style>
+    .app-shell { display: flex; min-height: 100vh; background-color: var(--color-bg); }
+
+    .sidebar {
+      width: 240px; background-color: var(--color-nav-bg);
+      display: flex; flex-direction: column; flex-shrink: 0;
+      position: fixed; top: 0; left: 0; bottom: 0; z-index: var(--z-sticky); overflow-y: auto;
+    }
+    .sidebar-brand {
+      display: flex; align-items: center; gap: 0.625rem;
+      padding: 1.25rem 1rem; border-bottom: 1px solid #1f2937; text-decoration: none;
+    }
+    .sidebar-brand-icon { width: 2rem; height: 2rem; background-color: var(--color-primary); border-radius: 0.5rem; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .sidebar-brand-name { font-size: 1rem; font-weight: 700; color: #f9fafb; }
+    .sidebar-nav { padding: 1rem 0.75rem; flex: 1; }
+    .sidebar-nav-label { font-size: 0.6875rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; color: #4b5563; padding: 0 0.5rem; margin-bottom: 0.5rem; margin-top: 1rem; }
+    .sidebar-nav-label:first-child { margin-top: 0; }
+    .nav-item { display: flex; align-items: center; gap: 0.75rem; padding: 0.625rem 0.75rem; border-radius: 0.5rem; color: var(--color-nav-text); text-decoration: none; font-size: 0.875rem; font-weight: 500; transition: background-color var(--transition-fast), color var(--transition-fast); margin-bottom: 0.125rem; }
+    .nav-item:hover { background-color: #1f2937; color: #e5e7eb; }
+    .nav-item.active { background-color: var(--color-nav-active-bg); color: #93c5fd; }
+    .nav-icon { width: 1.125rem; height: 1.125rem; flex-shrink: 0; }
+    .sidebar-user { padding: 0.75rem; border-top: 1px solid #1f2937; display: flex; align-items: center; gap: 0.75rem; }
+    .sidebar-user-name { font-size: 0.875rem; font-weight: 600; color: #f9fafb; }
+    .sidebar-user-email { font-size: 0.75rem; color: #6b7280; }
+
+    .main-area { margin-left: 240px; flex: 1; display: flex; flex-direction: column; min-width: 0; }
+    .topbar { background-color: var(--color-surface); border-bottom: 1px solid var(--color-border); padding: 0.875rem 1.5rem; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: var(--z-sticky); }
+    .topbar-title { font-size: 1.125rem; font-weight: 700; color: var(--color-text); }
+
+    .content { padding: 1.5rem; display: flex; flex-direction: column; gap: 1.5rem; max-width: 720px; }
+
+    /* Account card principal */
+    .account-card {
+      background: linear-gradient(135deg, #1e3a8a 0%, #2563eb 60%, #3b82f6 100%);
+      border-radius: 1.25rem;
+      padding: 1.75rem;
+      color: #fff;
+      position: relative;
+      overflow: hidden;
+    }
+    .account-card::before {
+      content: '';
+      position: absolute;
+      top: -40px; right: -40px;
+      width: 160px; height: 160px;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.07);
+    }
+    .account-card::after {
+      content: '';
+      position: absolute;
+      bottom: -60px; left: 30px;
+      width: 200px; height: 200px;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.05);
+    }
+    .account-top { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 1.5rem; }
+    .account-type { font-size: 0.8125rem; font-weight: 500; color: #93c5fd; }
+    .account-bank { font-size: 0.8125rem; color: #93c5fd; }
+    .balance-row { display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1.25rem; }
+    .balance-label { font-size: 0.8125rem; color: #bfdbfe; margin-bottom: 0.25rem; }
+    .balance-value { font-size: 2rem; font-weight: 700; color: #fff; }
+    .balance-hidden { font-size: 1.5rem; letter-spacing: 0.25em; color: #bfdbfe; }
+    .eye-btn { background: rgba(255,255,255,0.15); border: none; border-radius: 0.5rem; padding: 0.375rem; cursor: pointer; color: #fff; display: flex; align-items: center; justify-content: center; transition: background var(--transition-fast); }
+    .eye-btn:hover { background: rgba(255,255,255,0.25); }
+    .account-details { display: flex; gap: 2rem; flex-wrap: wrap; margin-bottom: 1.25rem; }
+    .account-detail-label { font-size: 0.75rem; color: #93c5fd; }
+    .account-detail-value { font-size: 0.9375rem; font-weight: 600; color: #fff; }
+    .copy-pix-btn {
+      display: inline-flex; align-items: center; gap: 0.5rem;
+      background: rgba(255,255,255,0.15); border: 1.5px solid rgba(255,255,255,0.3);
+      color: #fff; border-radius: 0.625rem; padding: 0.5rem 1rem;
+      font-size: 0.875rem; font-weight: 600; cursor: pointer;
+      transition: background var(--transition-fast);
+    }
+    .copy-pix-btn:hover { background: rgba(255,255,255,0.25); }
+
+    /* Pix keys section */
+    .section-card { background-color: var(--color-surface); border: 1px solid var(--color-border); border-radius: 0.875rem; overflow: hidden; }
+    .section-header { display: flex; justify-content: space-between; align-items: center; padding: 1rem 1.25rem; border-bottom: 1px solid var(--color-border); }
+    .section-title { font-size: 0.9375rem; font-weight: 600; color: var(--color-text); }
+
+    .pix-key-item { display: flex; align-items: center; gap: 1rem; padding: 0.875rem 1.25rem; border-bottom: 1px solid var(--color-border); }
+    .pix-key-item:last-child { border-bottom: none; }
+    .pix-key-icon { width: 2.25rem; height: 2.25rem; background-color: var(--color-primary-light); border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .pix-key-info { flex: 1; }
+    .pix-key-type { font-size: 0.75rem; font-weight: 600; color: var(--color-text-muted); text-transform: uppercase; letter-spacing: 0.04em; }
+    .pix-key-value { font-size: 0.9375rem; font-weight: 500; color: var(--color-text); margin-top: 0.125rem; font-family: 'Courier New', monospace; }
+    .pix-key-actions { display: flex; gap: 0.5rem; }
+
+    .bottom-nav { display: none; position: fixed; bottom: 0; left: 0; right: 0; background-color: var(--color-surface); border-top: 1px solid var(--color-border); padding: 0.5rem 0; z-index: var(--z-sticky); }
+    .bottom-nav-items { display: flex; justify-content: space-around; }
+    .bottom-nav-item { display: flex; flex-direction: column; align-items: center; gap: 0.25rem; padding: 0.375rem 0.5rem; color: var(--color-text-muted); text-decoration: none; font-size: 0.625rem; font-weight: 500; }
+    .bottom-nav-item.active { color: var(--color-primary); }
+
+    .dark-toggle { position: fixed; top: 1rem; right: 1rem; z-index: 999; }
+
+    @media (max-width: 767px) {
+      .sidebar { display: none; }
+      .main-area { margin-left: 0; padding-bottom: 5rem; }
+      .bottom-nav { display: block; }
+    }
+  </style>
+</head>
+<body>
+
+<button class="btn btn-secondary btn-sm dark-toggle" onclick="document.documentElement.classList.toggle('dark')" aria-label="Alternar dark mode">Modo escuro</button>
+
+<div class="app-shell">
+
+  <!-- Sidebar -->
+  <aside class="sidebar" aria-label="Navegacao principal">
+    <a href="dashboard.html" class="sidebar-brand">
+      <div class="sidebar-brand-icon" aria-hidden="true">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+      </div>
+      <span class="sidebar-brand-name">Nexus Bank</span>
+    </a>
+    <nav class="sidebar-nav">
+      <p class="sidebar-nav-label">Principal</p>
+      <a href="dashboard.html" class="nav-item"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>Inicio</a>
+      <a href="carteira.html" class="nav-item active" aria-current="page"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>Carteira</a>
+      <a href="transferencia.html" class="nav-item"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>Transferencias</a>
+      <a href="extrato.html" class="nav-item"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>Extrato</a>
+      <p class="sidebar-nav-label">Conta</p>
+      <a href="contas.html" class="nav-item"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M20 21a8 8 0 10-16 0"/></svg>Contas</a>
+      <a href="notificacoes.html" class="nav-item"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/></svg>Notificacoes</a>
+      <a href="perfil.html" class="nav-item"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>Perfil</a>
+    </nav>
+    <div class="sidebar-user">
+      <div class="avatar" style="width:2rem;height:2rem;font-size:0.75rem">LF</div>
+      <div>
+        <p class="sidebar-user-name">Lucas Ferreira</p>
+        <p class="sidebar-user-email">lucas@email.com</p>
+      </div>
+    </div>
+  </aside>
+
+  <div class="main-area">
+    <header class="topbar">
+      <h1 class="topbar-title">Carteira</h1>
+      <div class="avatar" aria-label="Avatar Lucas Ferreira">LF</div>
+    </header>
+
+    <main class="content" id="main-content">
+
+      <!-- Account card -->
+      <section aria-labelledby="account-heading">
+        <h2 id="account-heading" style="font-size:0.875rem;font-weight:600;color:var(--color-text-muted);margin-bottom:0.875rem;text-transform:uppercase;letter-spacing:0.05em">Minha conta</h2>
+
+        <div class="account-card">
+          <div class="account-top">
+            <div>
+              <p class="account-type">Conta Corrente</p>
+              <p style="font-size:1.125rem;font-weight:700;color:#fff;margin-top:0.25rem">Nexus Bank</p>
+            </div>
+            <p class="account-bank" style="font-size:0.75rem;background:rgba(255,255,255,0.15);padding:0.25rem 0.625rem;border-radius:9999px">ISPB 12345678</p>
+          </div>
+
+          <div>
+            <p class="balance-label">Saldo disponivel</p>
+            <div class="balance-row">
+              <p class="balance-value" id="balance-display">R$ 12.450,00</p>
+              <button class="eye-btn" onclick="toggleBalance()" aria-label="Ocultar saldo" id="eye-btn">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+              </button>
+            </div>
+          </div>
+
+          <div class="account-details">
+            <div>
+              <p class="account-detail-label">Agencia</p>
+              <p class="account-detail-value">0001</p>
+            </div>
+            <div>
+              <p class="account-detail-label">Conta</p>
+              <p class="account-detail-value">123456-7</p>
+            </div>
+            <div>
+              <p class="account-detail-label">CPF</p>
+              <p class="account-detail-value">***.456.789-**</p>
+            </div>
+          </div>
+
+          <button class="copy-pix-btn" onclick="copyKey()" aria-label="Copiar chave Pix do CPF">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
+            Copiar chave Pix
+          </button>
+        </div>
+      </section>
+
+      <!-- Pix Keys (estado com chaves) -->
+      <section class="section-card" aria-labelledby="pix-heading">
+        <div class="section-header">
+          <h2 class="section-title" id="pix-heading">Chaves Pix</h2>
+          <button class="btn btn-primary btn-sm">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            Adicionar chave
+          </button>
+        </div>
+
+        <div class="pix-key-item">
+          <div class="pix-key-icon" aria-hidden="true">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M20 21a8 8 0 10-16 0"/></svg>
+          </div>
+          <div class="pix-key-info">
+            <p class="pix-key-type">CPF</p>
+            <p class="pix-key-value">***.456.789-**</p>
+          </div>
+          <div class="pix-key-actions">
+            <button class="btn btn-secondary btn-sm" aria-label="Copiar chave CPF">Copiar</button>
+            <button class="btn btn-ghost btn-sm" aria-label="Remover chave CPF" style="color:var(--color-error)">Remover</button>
+          </div>
+        </div>
+
+        <div class="pix-key-item">
+          <div class="pix-key-icon" aria-hidden="true">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+          </div>
+          <div class="pix-key-info">
+            <p class="pix-key-type">E-mail</p>
+            <p class="pix-key-value">lu***@gmail.com</p>
+          </div>
+          <div class="pix-key-actions">
+            <button class="btn btn-secondary btn-sm" aria-label="Copiar chave e-mail">Copiar</button>
+            <button class="btn btn-ghost btn-sm" aria-label="Remover chave e-mail" style="color:var(--color-error)">Remover</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- VARIANTE: Sem chaves Pix -->
+      <section aria-label="Variante — Sem chaves Pix">
+        <h3 style="font-size:0.7rem;font-weight:700;color:var(--color-text-muted);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:0.75rem">Variante — Sem chaves Pix cadastradas</h3>
+        <div class="section-card">
+          <div class="section-header">
+            <h2 class="section-title">Chaves Pix</h2>
+            <button class="btn btn-primary btn-sm">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              Adicionar chave
+            </button>
+          </div>
+          <div class="empty-state">
+            <div class="empty-state-icon">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+            </div>
+            <p class="empty-state-title">Nenhuma chave Pix cadastrada</p>
+            <p class="empty-state-desc">Adicione uma chave Pix para receber transferencias de forma rapida e gratuita.</p>
+            <button class="btn btn-primary">Adicionar minha primeira chave</button>
+          </div>
+        </div>
+      </section>
+
+    </main>
+  </div>
+
+  <!-- Bottom nav mobile -->
+  <nav class="bottom-nav" aria-label="Navegacao mobile">
+    <div class="bottom-nav-items">
+      <a href="dashboard.html" class="bottom-nav-item"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>Inicio</a>
+      <a href="carteira.html" class="bottom-nav-item active" aria-current="page"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>Carteira</a>
+      <a href="transferencia.html" class="bottom-nav-item"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>Pix</a>
+      <a href="extrato.html" class="bottom-nav-item"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/></svg>Extrato</a>
+      <a href="perfil.html" class="bottom-nav-item"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M20 21a8 8 0 10-16 0"/></svg>Perfil</a>
+    </div>
+  </nav>
+
+</div>
+
+<script>
+  let balanceVisible = true;
+  function toggleBalance() {
+    const display = document.getElementById('balance-display');
+    const btn = document.getElementById('eye-btn');
+    balanceVisible = !balanceVisible;
+    if (balanceVisible) {
+      display.textContent = 'R$ 12.450,00';
+      display.classList.remove('balance-hidden');
+      btn.setAttribute('aria-label', 'Ocultar saldo');
+      btn.innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>';
+    } else {
+      display.textContent = '•••••••••';
+      display.style.fontSize = '1.5rem';
+      display.style.letterSpacing = '0.25em';
+      btn.setAttribute('aria-label', 'Mostrar saldo');
+      btn.innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19"/><line x1="1" y1="1" x2="23" y2="23"/></svg>';
+    }
+  }
+
+  function copyKey() {
+    navigator.clipboard?.writeText('***.456.789-**').catch(() => {});
+    const btn = document.querySelector('.copy-pix-btn');
+    const orig = btn.innerHTML;
+    btn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg> Copiado!';
+    setTimeout(() => { btn.innerHTML = orig; }, 2000);
+  }
+
+  document.querySelector('.dark-toggle').addEventListener('click', function() {
+    const isDark = document.documentElement.classList.contains('dark');
+    this.textContent = isDark ? 'Modo escuro' : 'Modo claro';
+  });
+</script>
+</body>
+</html>

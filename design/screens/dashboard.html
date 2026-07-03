@@ -1,0 +1,738 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Nexus Bank — Dashboard</title>
+  <link rel="stylesheet" href="../design-system.css" />
+  <style>
+    /* ---- Layout shell ---- */
+    .app-shell {
+      display: flex;
+      min-height: 100vh;
+      background-color: var(--color-bg);
+    }
+
+    /* ---- Sidebar (desktop) ---- */
+    .sidebar {
+      width: 240px;
+      background-color: var(--color-nav-bg);
+      display: flex;
+      flex-direction: column;
+      flex-shrink: 0;
+      position: fixed;
+      top: 0;
+      left: 0;
+      bottom: 0;
+      z-index: var(--z-sticky);
+      overflow-y: auto;
+    }
+
+    .sidebar-brand {
+      display: flex;
+      align-items: center;
+      gap: 0.625rem;
+      padding: 1.25rem 1rem;
+      border-bottom: 1px solid #1f2937;
+      text-decoration: none;
+    }
+    .sidebar-brand-icon {
+      width: 2rem;
+      height: 2rem;
+      background-color: var(--color-primary);
+      border-radius: 0.5rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+    .sidebar-brand-name {
+      font-size: 1rem;
+      font-weight: 700;
+      color: #f9fafb;
+    }
+
+    .sidebar-nav { padding: 1rem 0.75rem; flex: 1; }
+    .sidebar-nav-label {
+      font-size: 0.6875rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: #4b5563;
+      padding: 0 0.5rem;
+      margin-bottom: 0.5rem;
+      margin-top: 1rem;
+    }
+    .sidebar-nav-label:first-child { margin-top: 0; }
+
+    .nav-item {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      padding: 0.625rem 0.75rem;
+      border-radius: 0.5rem;
+      color: var(--color-nav-text);
+      text-decoration: none;
+      font-size: 0.875rem;
+      font-weight: 500;
+      transition: background-color var(--transition-fast), color var(--transition-fast);
+      margin-bottom: 0.125rem;
+    }
+    .nav-item:hover { background-color: #1f2937; color: #e5e7eb; }
+    .nav-item.active {
+      background-color: var(--color-nav-active-bg);
+      color: #93c5fd;
+    }
+    .nav-item .nav-icon { width: 1.125rem; height: 1.125rem; flex-shrink: 0; }
+
+    .sidebar-user {
+      padding: 0.75rem;
+      border-top: 1px solid #1f2937;
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+    .sidebar-user-info { flex: 1; min-width: 0; }
+    .sidebar-user-name { font-size: 0.875rem; font-weight: 600; color: #f9fafb; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .sidebar-user-email { font-size: 0.75rem; color: #6b7280; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+    /* ---- Main area ---- */
+    .main-area {
+      margin-left: 240px;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      min-width: 0;
+    }
+
+    /* ---- Top bar ---- */
+    .topbar {
+      background-color: var(--color-surface);
+      border-bottom: 1px solid var(--color-border);
+      padding: 0.875rem 1.5rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: sticky;
+      top: 0;
+      z-index: var(--z-sticky);
+    }
+    .topbar-greeting { font-size: 1rem; font-weight: 600; color: var(--color-text); }
+    .topbar-date { font-size: 0.8125rem; color: var(--color-text-muted); margin-top: 0.125rem; }
+    .topbar-actions { display: flex; align-items: center; gap: 0.75rem; }
+
+    .icon-btn {
+      width: 2.25rem;
+      height: 2.25rem;
+      border-radius: 0.5rem;
+      border: 1px solid var(--color-border);
+      background-color: var(--color-surface);
+      color: var(--color-text-muted);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all var(--transition-fast);
+      position: relative;
+    }
+    .icon-btn:hover { background-color: var(--color-bg); color: var(--color-text); }
+    .notif-dot {
+      position: absolute;
+      top: 0.375rem;
+      right: 0.375rem;
+      width: 0.5rem;
+      height: 0.5rem;
+      background-color: var(--color-error);
+      border-radius: 50%;
+      border: 2px solid var(--color-surface);
+    }
+
+    /* ---- Content ---- */
+    .content {
+      padding: 1.5rem;
+      display: flex;
+      flex-direction: column;
+      gap: 1.5rem;
+    }
+
+    /* ---- Balance cards ---- */
+    .balance-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: 1rem;
+    }
+
+    .balance-card {
+      background-color: var(--color-surface);
+      border: 1px solid var(--color-border);
+      border-radius: 0.875rem;
+      padding: 1.25rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+    .balance-card-label {
+      font-size: 0.75rem;
+      font-weight: 500;
+      color: var(--color-text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    .balance-card-value {
+      font-size: 1.625rem;
+      font-weight: 700;
+      color: var(--color-text);
+      line-height: 1.2;
+    }
+    .balance-card-value.primary { color: var(--color-primary); }
+    .balance-card-sub { font-size: 0.8125rem; }
+    .balance-card-sub.up   { color: var(--color-success); }
+    .balance-card-sub.down { color: var(--color-error); }
+
+    .balance-card.highlight {
+      background: linear-gradient(135deg, #1e40af 0%, #2563eb 100%);
+      border-color: transparent;
+    }
+    .balance-card.highlight .balance-card-label { color: #93c5fd; }
+    .balance-card.highlight .balance-card-value { color: #fff; }
+    .balance-card.highlight .balance-card-sub   { color: #bbf7d0; }
+
+    /* ---- Quick actions ---- */
+    .quick-actions {
+      display: flex;
+      gap: 0.75rem;
+      flex-wrap: wrap;
+    }
+    .quick-action-btn {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.375rem;
+      padding: 0.875rem 1.25rem;
+      background-color: var(--color-surface);
+      border: 1px solid var(--color-border);
+      border-radius: 0.875rem;
+      cursor: pointer;
+      transition: all var(--transition-fast);
+      text-decoration: none;
+      min-width: 5rem;
+    }
+    .quick-action-btn:hover {
+      border-color: var(--color-primary);
+      background-color: var(--color-primary-light);
+    }
+    .quick-action-icon {
+      width: 2.5rem;
+      height: 2.5rem;
+      border-radius: 50%;
+      background-color: var(--color-primary-light);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .quick-action-label {
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: var(--color-text);
+    }
+
+    /* ---- Two-column layout ---- */
+    .dashboard-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 1.5rem;
+    }
+    @media (min-width: 900px) {
+      .dashboard-grid { grid-template-columns: 1fr 340px; }
+    }
+
+    /* ---- Chart ---- */
+    .chart-section {
+      background-color: var(--color-surface);
+      border: 1px solid var(--color-border);
+      border-radius: 0.875rem;
+      padding: 1.25rem;
+    }
+    .chart-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1.25rem;
+    }
+    .chart-title { font-size: 0.9375rem; font-weight: 600; color: var(--color-text); }
+
+    .bar-chart {
+      display: flex;
+      align-items: flex-end;
+      gap: 0.625rem;
+      height: 120px;
+    }
+    .bar-group { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 0.375rem; }
+    .bars { display: flex; gap: 0.25rem; align-items: flex-end; height: 96px; }
+    .bar {
+      width: 0.75rem;
+      border-radius: 0.25rem 0.25rem 0 0;
+      transition: opacity var(--transition-fast);
+    }
+    .bar:hover { opacity: 0.75; }
+    .bar.income { background-color: var(--color-primary); }
+    .bar.expense { background-color: #fca5a5; }
+    .bar-label { font-size: 0.6875rem; color: var(--color-text-muted); }
+
+    .chart-legend {
+      display: flex;
+      gap: 1rem;
+      margin-top: 0.75rem;
+    }
+    .legend-item { display: flex; align-items: center; gap: 0.375rem; font-size: 0.75rem; color: var(--color-text-muted); }
+    .legend-dot  { width: 0.625rem; height: 0.625rem; border-radius: 50%; }
+
+    /* ---- Transactions list ---- */
+    .transactions-section {
+      background-color: var(--color-surface);
+      border: 1px solid var(--color-border);
+      border-radius: 0.875rem;
+      overflow: hidden;
+    }
+    .transactions-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 1rem 1.25rem;
+      border-bottom: 1px solid var(--color-border);
+    }
+    .transactions-title { font-size: 0.9375rem; font-weight: 600; color: var(--color-text); }
+
+    .transaction-item {
+      display: flex;
+      align-items: center;
+      gap: 0.875rem;
+      padding: 0.875rem 1.25rem;
+      border-bottom: 1px solid var(--color-border);
+      transition: background-color var(--transition-fast);
+    }
+    .transaction-item:last-child { border-bottom: none; }
+    .transaction-item:hover { background-color: var(--color-bg); }
+
+    .tx-icon {
+      width: 2.25rem;
+      height: 2.25rem;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+    .tx-icon.pix-in   { background-color: var(--color-success-bg); }
+    .tx-icon.pix-out  { background-color: var(--color-primary-light); }
+    .tx-icon.debit    { background-color: var(--color-warning-bg); }
+    .tx-icon.ted-out  { background-color: var(--color-error-bg); }
+
+    .tx-info { flex: 1; min-width: 0; }
+    .tx-desc {
+      font-size: 0.875rem;
+      font-weight: 500;
+      color: var(--color-text);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .tx-meta { font-size: 0.75rem; color: var(--color-text-muted); margin-top: 0.125rem; }
+
+    .tx-amount-col { text-align: right; flex-shrink: 0; }
+    .tx-amount { font-size: 0.9375rem; font-weight: 700; }
+    .tx-amount.credit { color: var(--color-success); }
+    .tx-amount.debit  { color: var(--color-error); }
+    .tx-date { font-size: 0.75rem; color: var(--color-text-muted); margin-top: 0.125rem; }
+
+    /* ---- Bottom nav (mobile) ---- */
+    .bottom-nav {
+      display: none;
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background-color: var(--color-surface);
+      border-top: 1px solid var(--color-border);
+      padding: 0.5rem 0 calc(0.5rem + env(safe-area-inset-bottom));
+      z-index: var(--z-sticky);
+    }
+    .bottom-nav-items { display: flex; justify-content: space-around; }
+    .bottom-nav-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.25rem;
+      padding: 0.375rem 0.5rem;
+      color: var(--color-text-muted);
+      text-decoration: none;
+      font-size: 0.625rem;
+      font-weight: 500;
+      transition: color var(--transition-fast);
+      border-radius: 0.5rem;
+    }
+    .bottom-nav-item.active { color: var(--color-primary); }
+    .bottom-nav-item:hover  { color: var(--color-text); }
+
+    .dark-toggle { position: fixed; top: 1rem; right: 1rem; z-index: 999; }
+
+    @media (max-width: 767px) {
+      .sidebar   { display: none; }
+      .main-area { margin-left: 0; padding-bottom: 5rem; }
+      .bottom-nav { display: block; }
+      .dark-toggle { top: 0.75rem; right: 0.75rem; }
+    }
+
+    /* ---- Error state ---- */
+    .error-banner {
+      background-color: var(--color-error-bg);
+      border: 1px solid #fca5a5;
+      border-radius: 0.75rem;
+      padding: 1rem 1.25rem;
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      color: var(--color-error);
+      font-size: 0.875rem;
+    }
+  </style>
+</head>
+<body>
+
+<button class="btn btn-secondary btn-sm dark-toggle" onclick="document.documentElement.classList.toggle('dark')" aria-label="Alternar dark mode">Modo escuro</button>
+
+<div class="app-shell">
+
+  <!-- Sidebar (desktop) -->
+  <aside class="sidebar" aria-label="Navegacao principal">
+    <a href="#" class="sidebar-brand" aria-label="Nexus Bank - Pagina inicial">
+      <div class="sidebar-brand-icon" aria-hidden="true">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+      </div>
+      <span class="sidebar-brand-name">Nexus Bank</span>
+    </a>
+
+    <nav class="sidebar-nav">
+      <p class="sidebar-nav-label">Principal</p>
+      <a href="dashboard.html" class="nav-item active" aria-current="page">
+        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+        Inicio
+      </a>
+      <a href="carteira.html" class="nav-item">
+        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>
+        Carteira
+      </a>
+      <a href="transferencia.html" class="nav-item">
+        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+        Transferencias
+      </a>
+      <a href="extrato.html" class="nav-item">
+        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+        Extrato
+      </a>
+
+      <p class="sidebar-nav-label">Conta</p>
+      <a href="contas.html" class="nav-item">
+        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M20 21a8 8 0 10-16 0"/></svg>
+        Contas
+      </a>
+      <a href="notificacoes.html" class="nav-item" style="position:relative">
+        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/></svg>
+        Notificacoes
+        <span style="position:absolute;right:0.75rem;top:50%;transform:translateY(-50%);background-color:var(--color-error);color:#fff;font-size:0.625rem;font-weight:700;padding:0.1rem 0.375rem;border-radius:9999px">3</span>
+      </a>
+      <a href="perfil.html" class="nav-item">
+        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+        Perfil
+      </a>
+    </nav>
+
+    <div class="sidebar-user">
+      <div class="avatar" style="width:2rem;height:2rem;font-size:0.75rem">LF</div>
+      <div class="sidebar-user-info">
+        <p class="sidebar-user-name">Lucas Ferreira</p>
+        <p class="sidebar-user-email">lucas@email.com</p>
+      </div>
+    </div>
+  </aside>
+
+  <!-- Main area -->
+  <div class="main-area">
+
+    <!-- Topbar -->
+    <header class="topbar">
+      <div>
+        <p class="topbar-greeting">Ola, Lucas</p>
+        <p class="topbar-date">Quinta-feira, 2 de julho de 2026</p>
+      </div>
+      <div class="topbar-actions">
+        <button class="icon-btn" aria-label="Notificacoes — 3 nao lidas">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/></svg>
+          <span class="notif-dot" aria-hidden="true"></span>
+        </button>
+        <div class="avatar" aria-label="Avatar de Lucas Ferreira">LF</div>
+      </div>
+    </header>
+
+    <!-- Content -->
+    <main class="content" id="main-content">
+
+      <!-- Balance cards -->
+      <section aria-labelledby="saldo-heading">
+        <h2 id="saldo-heading" style="font-size:0.875rem;font-weight:600;color:var(--color-text-muted);margin-bottom:0.875rem;text-transform:uppercase;letter-spacing:0.05em">Resumo financeiro</h2>
+        <div class="balance-grid">
+          <div class="balance-card highlight">
+            <p class="balance-card-label">Saldo disponivel</p>
+            <p class="balance-card-value">R$ 12.450,00</p>
+            <p class="balance-card-sub up">Conta Corrente — 123456-7</p>
+          </div>
+          <div class="balance-card">
+            <p class="balance-card-label">Limite Pix</p>
+            <p class="balance-card-value primary">R$ 5.000,00</p>
+            <p class="balance-card-sub" style="color:var(--color-text-muted)">Disponivel hoje</p>
+          </div>
+          <div class="balance-card">
+            <p class="balance-card-label">Rendimento do mes</p>
+            <p class="balance-card-value" style="font-size:1.375rem">+R$ 87,32</p>
+            <p class="balance-card-sub up">+0,70% em julho</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- Quick actions -->
+      <section aria-labelledby="acoes-heading">
+        <h2 id="acoes-heading" style="font-size:0.875rem;font-weight:600;color:var(--color-text-muted);margin-bottom:0.875rem;text-transform:uppercase;letter-spacing:0.05em">Acoes rapidas</h2>
+        <div class="quick-actions" role="group" aria-label="Acoes rapidas">
+          <a href="transferencia.html" class="quick-action-btn">
+            <div class="quick-action-icon" aria-hidden="true">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
+            </div>
+            <span class="quick-action-label">Pix</span>
+          </a>
+          <a href="transferencia.html" class="quick-action-btn">
+            <div class="quick-action-icon" aria-hidden="true">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+            </div>
+            <span class="quick-action-label">Transferir</span>
+          </a>
+          <a href="#" class="quick-action-btn">
+            <div class="quick-action-icon" aria-hidden="true">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="2"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>
+            </div>
+            <span class="quick-action-label">Pagar</span>
+          </a>
+          <a href="extrato.html" class="quick-action-btn">
+            <div class="quick-action-icon" aria-hidden="true">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+            </div>
+            <span class="quick-action-label">Extrato</span>
+          </a>
+        </div>
+      </section>
+
+      <!-- Dashboard grid: chart + transactions -->
+      <div class="dashboard-grid">
+
+        <!-- Chart -->
+        <div class="chart-section" aria-labelledby="chart-heading">
+          <div class="chart-header">
+            <h2 class="chart-title" id="chart-heading">Movimentacoes — Junho 2026</h2>
+            <button class="btn btn-secondary btn-sm">Ver extrato completo</button>
+          </div>
+
+          <!-- SVG bar chart simples -->
+          <svg viewBox="0 0 400 120" width="100%" height="120" aria-label="Grafico de movimentacoes mensais" role="img">
+            <!-- Linhas de grade -->
+            <line x1="0" y1="0"   x2="400" y2="0"   stroke="var(--color-border)" stroke-width="1" stroke-dasharray="4"/>
+            <line x1="0" y1="40"  x2="400" y2="40"  stroke="var(--color-border)" stroke-width="1" stroke-dasharray="4"/>
+            <line x1="0" y1="80"  x2="400" y2="80"  stroke="var(--color-border)" stroke-width="1" stroke-dasharray="4"/>
+            <line x1="0" y1="120" x2="400" y2="120" stroke="var(--color-border)" stroke-width="1"/>
+
+            <!-- Barras: credito (azul) / debito (vermelho claro) -->
+            <!-- Jan -->
+            <rect x="10"  y="50" width="18" height="70" rx="3" fill="#2563eb" opacity="0.9"/>
+            <rect x="30"  y="70" width="18" height="50" rx="3" fill="#fca5a5" opacity="0.9"/>
+            <!-- Fev -->
+            <rect x="68"  y="30" width="18" height="90" rx="3" fill="#2563eb" opacity="0.9"/>
+            <rect x="88"  y="60" width="18" height="60" rx="3" fill="#fca5a5" opacity="0.9"/>
+            <!-- Mar -->
+            <rect x="126" y="45" width="18" height="75" rx="3" fill="#2563eb" opacity="0.9"/>
+            <rect x="146" y="55" width="18" height="65" rx="3" fill="#fca5a5" opacity="0.9"/>
+            <!-- Abr -->
+            <rect x="184" y="20" width="18" height="100" rx="3" fill="#2563eb" opacity="0.9"/>
+            <rect x="204" y="75" width="18" height="45" rx="3" fill="#fca5a5" opacity="0.9"/>
+            <!-- Mai -->
+            <rect x="242" y="40" width="18" height="80" rx="3" fill="#2563eb" opacity="0.9"/>
+            <rect x="262" y="65" width="18" height="55" rx="3" fill="#fca5a5" opacity="0.9"/>
+            <!-- Jun -->
+            <rect x="300" y="15" width="18" height="105" rx="3" fill="#2563eb"/>
+            <rect x="320" y="50" width="18" height="70" rx="3" fill="#fca5a5"/>
+
+            <!-- Labels meses -->
+            <text x="24"  y="115" text-anchor="middle" font-size="9" fill="var(--color-text-muted)">Jan</text>
+            <text x="82"  y="115" text-anchor="middle" font-size="9" fill="var(--color-text-muted)">Fev</text>
+            <text x="140" y="115" text-anchor="middle" font-size="9" fill="var(--color-text-muted)">Mar</text>
+            <text x="198" y="115" text-anchor="middle" font-size="9" fill="var(--color-text-muted)">Abr</text>
+            <text x="256" y="115" text-anchor="middle" font-size="9" fill="var(--color-text-muted)">Mai</text>
+            <text x="314" y="115" text-anchor="middle" font-size="9" fill="var(--color-text-muted)">Jun</text>
+          </svg>
+
+          <div class="chart-legend">
+            <div class="legend-item">
+              <div class="legend-dot" style="background-color:#2563eb"></div>
+              Creditos recebidos
+            </div>
+            <div class="legend-item">
+              <div class="legend-dot" style="background-color:#fca5a5"></div>
+              Debitos realizados
+            </div>
+          </div>
+        </div>
+
+        <!-- Transactions -->
+        <section class="transactions-section" aria-labelledby="tx-heading">
+          <div class="transactions-header">
+            <h2 class="transactions-title" id="tx-heading">Ultimas transacoes</h2>
+            <a href="extrato.html" class="btn btn-ghost btn-sm" style="font-size:0.8125rem">Ver todas</a>
+          </div>
+
+          <ul style="list-style:none">
+            <li class="transaction-item">
+              <div class="tx-icon pix-in" aria-hidden="true">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#16a34a" stroke-width="2"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>
+              </div>
+              <div class="tx-info">
+                <p class="tx-desc">PIX recebido</p>
+                <p class="tx-meta">Lucas Ferreira</p>
+              </div>
+              <div class="tx-amount-col">
+                <p class="tx-amount credit">+R$ 500,00</p>
+                <p class="tx-date">02/07 09:15</p>
+              </div>
+            </li>
+            <li class="transaction-item">
+              <div class="tx-icon debit" aria-hidden="true">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#d97706" stroke-width="2"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>
+              </div>
+              <div class="tx-info">
+                <p class="tx-desc">Compra debito</p>
+                <p class="tx-meta">Supermercado Extra</p>
+              </div>
+              <div class="tx-amount-col">
+                <p class="tx-amount debit">-R$ 187,40</p>
+                <p class="tx-date">01/07 18:42</p>
+              </div>
+            </li>
+            <li class="transaction-item">
+              <div class="tx-icon ted-out" aria-hidden="true">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#dc2626" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+              </div>
+              <div class="tx-info">
+                <p class="tx-desc">TED enviada</p>
+                <p class="tx-meta">Joao da Silva</p>
+              </div>
+              <div class="tx-amount-col">
+                <p class="tx-amount debit">-R$ 1.200,00</p>
+                <p class="tx-date">30/06 14:32</p>
+              </div>
+            </li>
+            <li class="transaction-item">
+              <div class="tx-icon pix-in" aria-hidden="true">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#16a34a" stroke-width="2"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>
+              </div>
+              <div class="tx-info">
+                <p class="tx-desc">PIX recebido</p>
+                <p class="tx-meta">Maria Lima</p>
+              </div>
+              <div class="tx-amount-col">
+                <p class="tx-amount credit">+R$ 250,00</p>
+                <p class="tx-date">28/06 11:05</p>
+              </div>
+            </li>
+            <li class="transaction-item">
+              <div class="tx-icon debit" aria-hidden="true">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#d97706" stroke-width="2"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>
+              </div>
+              <div class="tx-info">
+                <p class="tx-desc">Compra debito</p>
+                <p class="tx-meta">Posto Shell</p>
+              </div>
+              <div class="tx-amount-col">
+                <p class="tx-amount debit">-R$ 95,60</p>
+                <p class="tx-date">27/06 20:10</p>
+              </div>
+            </li>
+          </ul>
+        </section>
+      </div>
+
+      <!-- VARIANTE: Erro de carregamento -->
+      <section aria-label="Variante — Erro de carregamento">
+        <h3 style="font-size:0.7rem;font-weight:700;color:var(--color-text-muted);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:0.75rem">Variante — Erro de carregamento</h3>
+        <div class="error-banner" role="alert">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink:0"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+          <div style="flex:1">
+            <p style="font-weight:600;margin-bottom:0.25rem">Nao foi possivel carregar suas transacoes</p>
+            <p style="font-size:0.8125rem;opacity:0.85">Verifique sua conexao e tente novamente.</p>
+          </div>
+          <button class="btn btn-secondary btn-sm">Tentar novamente</button>
+        </div>
+      </section>
+
+      <!-- VARIANTE: Estado vazio (sem transacoes) -->
+      <section aria-label="Variante — Sem transacoes">
+        <h3 style="font-size:0.7rem;font-weight:700;color:var(--color-text-muted);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:0.75rem">Variante — Sem transacoes</h3>
+        <div class="transactions-section">
+          <div class="transactions-header">
+            <h2 class="transactions-title">Ultimas transacoes</h2>
+          </div>
+          <div class="empty-state">
+            <div class="empty-state-icon">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+            </div>
+            <p class="empty-state-title">Nenhuma transacao ainda</p>
+            <p class="empty-state-desc">Faca sua primeira transferencia ou pix para comecar a movimentar sua conta.</p>
+            <a href="transferencia.html" class="btn btn-primary">Fazer uma transferencia</a>
+          </div>
+        </div>
+      </section>
+
+    </main>
+  </div>
+
+  <!-- Bottom nav (mobile) -->
+  <nav class="bottom-nav" aria-label="Navegacao principal mobile">
+    <div class="bottom-nav-items">
+      <a href="dashboard.html" class="bottom-nav-item active" aria-current="page">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+        Inicio
+      </a>
+      <a href="carteira.html" class="bottom-nav-item">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>
+        Carteira
+      </a>
+      <a href="transferencia.html" class="bottom-nav-item">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+        Pix
+      </a>
+      <a href="extrato.html" class="bottom-nav-item">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/></svg>
+        Extrato
+      </a>
+      <a href="perfil.html" class="bottom-nav-item">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M20 21a8 8 0 10-16 0"/></svg>
+        Perfil
+      </a>
+    </div>
+  </nav>
+
+</div>
+
+<script>
+  document.querySelector('.dark-toggle').addEventListener('click', function() {
+    const isDark = document.documentElement.classList.contains('dark');
+    this.textContent = isDark ? 'Modo escuro' : 'Modo claro';
+  });
+</script>
+</body>
+</html>

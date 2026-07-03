@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Nexus Bank — Extrato</title>
+  <link rel="stylesheet" href="../design-system.css" />
+  <style>
+    .app-shell { display: flex; min-height: 100vh; background-color: var(--color-bg); }
+    .sidebar { width: 240px; background-color: var(--color-nav-bg); display: flex; flex-direction: column; flex-shrink: 0; position: fixed; top: 0; left: 0; bottom: 0; z-index: var(--z-sticky); overflow-y: auto; }
+    .sidebar-brand { display: flex; align-items: center; gap: 0.625rem; padding: 1.25rem 1rem; border-bottom: 1px solid #1f2937; text-decoration: none; }
+    .sidebar-brand-icon { width: 2rem; height: 2rem; background-color: var(--color-primary); border-radius: 0.5rem; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .sidebar-brand-name { font-size: 1rem; font-weight: 700; color: #f9fafb; }
+    .sidebar-nav { padding: 1rem 0.75rem; flex: 1; }
+    .sidebar-nav-label { font-size: 0.6875rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; color: #4b5563; padding: 0 0.5rem; margin-bottom: 0.5rem; margin-top: 1rem; }
+    .sidebar-nav-label:first-child { margin-top: 0; }
+    .nav-item { display: flex; align-items: center; gap: 0.75rem; padding: 0.625rem 0.75rem; border-radius: 0.5rem; color: var(--color-nav-text); text-decoration: none; font-size: 0.875rem; font-weight: 500; transition: background-color var(--transition-fast), color var(--transition-fast); margin-bottom: 0.125rem; }
+    .nav-item:hover { background-color: #1f2937; color: #e5e7eb; }
+    .nav-item.active { background-color: var(--color-nav-active-bg); color: #93c5fd; }
+    .nav-icon { width: 1.125rem; height: 1.125rem; flex-shrink: 0; }
+    .sidebar-user { padding: 0.75rem; border-top: 1px solid #1f2937; display: flex; align-items: center; gap: 0.75rem; }
+    .sidebar-user-name { font-size: 0.875rem; font-weight: 600; color: #f9fafb; }
+    .sidebar-user-email { font-size: 0.75rem; color: #6b7280; }
+    .main-area { margin-left: 240px; flex: 1; display: flex; flex-direction: column; min-width: 0; }
+    .topbar { background-color: var(--color-surface); border-bottom: 1px solid var(--color-border); padding: 0.875rem 1.5rem; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: var(--z-sticky); }
+    .topbar-title { font-size: 1.125rem; font-weight: 700; color: var(--color-text); }
+    .content { padding: 1.5rem; display: flex; flex-direction: column; gap: 1.5rem; }
+
+    /* Filtros */
+    .filters-bar {
+      background-color: var(--color-surface);
+      border: 1px solid var(--color-border);
+      border-radius: 0.875rem;
+      padding: 1rem 1.25rem;
+      display: flex;
+      gap: 1rem;
+      flex-wrap: wrap;
+      align-items: flex-end;
+    }
+    .filter-group { display: flex; flex-direction: column; gap: 0.375rem; }
+    .filter-label { font-size: 0.75rem; font-weight: 600; color: var(--color-text-muted); }
+    .filter-tabs { display: flex; gap: 0; border: 1px solid var(--color-border); border-radius: 0.5rem; overflow: hidden; }
+    .filter-tab { padding: 0.4375rem 0.875rem; font-size: 0.8125rem; font-weight: 500; background: none; border: none; color: var(--color-text-muted); cursor: pointer; transition: all var(--transition-fast); border-right: 1px solid var(--color-border); white-space: nowrap; }
+    .filter-tab:last-child { border-right: none; }
+    .filter-tab.active { background-color: var(--color-primary); color: #fff; font-weight: 600; }
+    .filter-tab:hover:not(.active) { background-color: var(--color-bg); color: var(--color-text); }
+
+    /* Summary cards */
+    .summary-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+      gap: 1rem;
+    }
+    .summary-card { background-color: var(--color-surface); border: 1px solid var(--color-border); border-radius: 0.75rem; padding: 1rem; }
+    .summary-card-label { font-size: 0.75rem; font-weight: 500; color: var(--color-text-muted); text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 0.375rem; }
+    .summary-card-value { font-size: 1.25rem; font-weight: 700; }
+    .summary-card-value.credit { color: var(--color-success); }
+    .summary-card-value.debit  { color: var(--color-error); }
+    .summary-card-value.balance { color: var(--color-primary); }
+
+    /* Transaction list */
+    .tx-list-card { background-color: var(--color-surface); border: 1px solid var(--color-border); border-radius: 0.875rem; overflow: hidden; }
+    .tx-list-header { display: flex; justify-content: space-between; align-items: center; padding: 1rem 1.25rem; border-bottom: 1px solid var(--color-border); }
+    .tx-list-title { font-size: 0.9375rem; font-weight: 600; color: var(--color-text); }
+    .tx-count { font-size: 0.8125rem; color: var(--color-text-muted); }
+
+    .tx-item { display: flex; align-items: center; gap: 0.875rem; padding: 0.875rem 1.25rem; border-bottom: 1px solid var(--color-border); transition: background-color var(--transition-fast); }
+    .tx-item:last-child { border-bottom: none; }
+    .tx-item:hover { background-color: var(--color-bg); }
+
+    .tx-icon-box { width: 2.25rem; height: 2.25rem; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .tx-icon-box.pix-in  { background-color: var(--color-success-bg); }
+    .tx-icon-box.pix-out { background-color: var(--color-primary-light); }
+    .tx-icon-box.debit   { background-color: var(--color-warning-bg); }
+    .tx-icon-box.ted-out { background-color: var(--color-error-bg); }
+
+    .tx-info { flex: 1; min-width: 0; }
+    .tx-desc { font-size: 0.875rem; font-weight: 500; color: var(--color-text); }
+    .tx-meta { font-size: 0.75rem; color: var(--color-text-muted); margin-top: 0.125rem; }
+    .tx-right { text-align: right; flex-shrink: 0; }
+    .tx-amount { font-size: 0.9375rem; font-weight: 700; }
+    .tx-amount.credit { color: var(--color-success); }
+    .tx-amount.debit  { color: var(--color-error); }
+    .tx-datetime { font-size: 0.75rem; color: var(--color-text-muted); margin-top: 0.125rem; }
+
+    .tx-list-footer { padding: 1rem 1.25rem; border-top: 1px solid var(--color-border); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem; }
+
+    .bottom-nav { display: none; position: fixed; bottom: 0; left: 0; right: 0; background-color: var(--color-surface); border-top: 1px solid var(--color-border); padding: 0.5rem 0; z-index: var(--z-sticky); }
+    .bottom-nav-items { display: flex; justify-content: space-around; }
+    .bottom-nav-item { display: flex; flex-direction: column; align-items: center; gap: 0.25rem; padding: 0.375rem 0.5rem; color: var(--color-text-muted); text-decoration: none; font-size: 0.625rem; font-weight: 500; }
+    .bottom-nav-item.active { color: var(--color-primary); }
+
+    .dark-toggle { position: fixed; top: 1rem; right: 1rem; z-index: 999; }
+
+    @media (max-width: 767px) {
+      .sidebar { display: none; }
+      .main-area { margin-left: 0; padding-bottom: 5rem; }
+      .bottom-nav { display: block; }
+      .tx-item { flex-wrap: wrap; }
+      .filters-bar { flex-direction: column; align-items: stretch; }
+    }
+  </style>
+</head>
+<body>
+
+<button class="btn btn-secondary btn-sm dark-toggle" onclick="document.documentElement.classList.toggle('dark')" aria-label="Alternar dark mode">Modo escuro</button>
+
+<div class="app-shell">
+  <aside class="sidebar" aria-label="Navegacao principal">
+    <a href="dashboard.html" class="sidebar-brand">
+      <div class="sidebar-brand-icon" aria-hidden="true"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg></div>
+      <span class="sidebar-brand-name">Nexus Bank</span>
+    </a>
+    <nav class="sidebar-nav">
+      <p class="sidebar-nav-label">Principal</p>
+      <a href="dashboard.html" class="nav-item"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>Inicio</a>
+      <a href="carteira.html" class="nav-item"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>Carteira</a>
+      <a href="transferencia.html" class="nav-item"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>Transferencias</a>
+      <a href="extrato.html" class="nav-item active" aria-current="page"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>Extrato</a>
+      <p class="sidebar-nav-label">Conta</p>
+      <a href="contas.html" class="nav-item"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M20 21a8 8 0 10-16 0"/></svg>Contas</a>
+      <a href="notificacoes.html" class="nav-item"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/></svg>Notificacoes</a>
+      <a href="perfil.html" class="nav-item"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>Perfil</a>
+    </nav>
+    <div class="sidebar-user">
+      <div class="avatar" style="width:2rem;height:2rem;font-size:0.75rem">LF</div>
+      <div><p class="sidebar-user-name">Lucas Ferreira</p><p class="sidebar-user-email">lucas@email.com</p></div>
+    </div>
+  </aside>
+
+  <div class="main-area">
+    <header class="topbar">
+      <h1 class="topbar-title">Extrato</h1>
+      <button class="btn btn-secondary btn-sm">Exportar PDF</button>
+    </header>
+
+    <main class="content" id="main-content">
+
+      <!-- Filtros -->
+      <section aria-label="Filtros de extrato">
+        <div class="filters-bar">
+          <div class="filter-group">
+            <p class="filter-label">Periodo</p>
+            <div class="filter-tabs" role="group" aria-label="Selecionar periodo">
+              <button class="filter-tab active" aria-pressed="true">Este mes</button>
+              <button class="filter-tab" aria-pressed="false">Ultimo mes</button>
+              <button class="filter-tab" aria-pressed="false">Personalizado</button>
+            </div>
+          </div>
+          <div class="filter-group">
+            <p class="filter-label">Tipo</p>
+            <div class="filter-tabs" role="group" aria-label="Filtrar por tipo">
+              <button class="filter-tab active" aria-pressed="true">Todos</button>
+              <button class="filter-tab" aria-pressed="false">Creditos</button>
+              <button class="filter-tab" aria-pressed="false">Debitos</button>
+            </div>
+          </div>
+          <div class="filter-group">
+            <p class="filter-label">Conta</p>
+            <select class="input" style="min-width:10rem;height:2.125rem;padding-top:0;padding-bottom:0">
+              <option>Conta Corrente — 123456-7</option>
+              <option>Conta Poupanca — 234567-8</option>
+            </select>
+          </div>
+        </div>
+      </section>
+
+      <!-- Resumo do periodo -->
+      <section aria-labelledby="summary-heading">
+        <h2 id="summary-heading" style="font-size:0.875rem;font-weight:600;color:var(--color-text-muted);margin-bottom:0.875rem;text-transform:uppercase;letter-spacing:0.05em">Resumo — Julho 2026</h2>
+        <div class="summary-grid">
+          <div class="summary-card">
+            <p class="summary-card-label">Total creditos</p>
+            <p class="summary-card-value credit">+R$ 2.340,00</p>
+          </div>
+          <div class="summary-card">
+            <p class="summary-card-label">Total debitos</p>
+            <p class="summary-card-value debit">-R$ 1.587,60</p>
+          </div>
+          <div class="summary-card">
+            <p class="summary-card-label">Saldo do periodo</p>
+            <p class="summary-card-value balance">+R$ 752,40</p>
+          </div>
+          <div class="summary-card">
+            <p class="summary-card-label">Transacoes</p>
+            <p class="summary-card-value" style="color:var(--color-text)">10</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- Listagem de transacoes -->
+      <section aria-labelledby="tx-list-heading">
+        <div class="tx-list-card">
+          <div class="tx-list-header">
+            <h2 class="tx-list-title" id="tx-list-heading">Movimentacoes</h2>
+            <span class="tx-count">10 de 23 transacoes</span>
+          </div>
+
+          <ul style="list-style:none" role="list" aria-label="Lista de transacoes">
+            <li class="tx-item">
+              <div class="tx-icon-box pix-in" aria-hidden="true"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#16a34a" stroke-width="2"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg></div>
+              <div class="tx-info"><p class="tx-desc">PIX recebido</p><p class="tx-meta">Lucas Ferreira</p></div>
+              <div class="tx-right">
+                <p class="tx-amount credit">+R$ 500,00</p>
+                <p class="tx-datetime">02/07 09:15</p>
+                <span class="badge badge-active" style="margin-top:0.25rem">Concluida</span>
+              </div>
+            </li>
+            <li class="tx-item">
+              <div class="tx-icon-box debit" aria-hidden="true"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#d97706" stroke-width="2"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg></div>
+              <div class="tx-info"><p class="tx-desc">Compra debito</p><p class="tx-meta">Supermercado Extra</p></div>
+              <div class="tx-right">
+                <p class="tx-amount debit">-R$ 187,40</p>
+                <p class="tx-datetime">01/07 18:42</p>
+                <span class="badge badge-active" style="margin-top:0.25rem">Concluida</span>
+              </div>
+            </li>
+            <li class="tx-item">
+              <div class="tx-icon-box ted-out" aria-hidden="true"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#dc2626" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg></div>
+              <div class="tx-info"><p class="tx-desc">TED enviada</p><p class="tx-meta">Joao da Silva</p></div>
+              <div class="tx-right">
+                <p class="tx-amount debit">-R$ 1.200,00</p>
+                <p class="tx-datetime">30/06 14:32</p>
+                <span class="badge badge-active" style="margin-top:0.25rem">Concluida</span>
+              </div>
+            </li>
+            <li class="tx-item">
+              <div class="tx-icon-box pix-in" aria-hidden="true"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#16a34a" stroke-width="2"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg></div>
+              <div class="tx-info"><p class="tx-desc">PIX recebido</p><p class="tx-meta">Maria Lima</p></div>
+              <div class="tx-right">
+                <p class="tx-amount credit">+R$ 250,00</p>
+                <p class="tx-datetime">28/06 11:05</p>
+                <span class="badge badge-pending" style="margin-top:0.25rem">Pendente</span>
+              </div>
+            </li>
+            <li class="tx-item">
+              <div class="tx-icon-box debit" aria-hidden="true"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#d97706" stroke-width="2"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg></div>
+              <div class="tx-info"><p class="tx-desc">Compra debito</p><p class="tx-meta">Posto Shell</p></div>
+              <div class="tx-right">
+                <p class="tx-amount debit">-R$ 95,60</p>
+                <p class="tx-datetime">27/06 20:10</p>
+                <span class="badge badge-cancelled" style="margin-top:0.25rem">Cancelada</span>
+              </div>
+            </li>
+            <li class="tx-item">
+              <div class="tx-icon-box pix-in" aria-hidden="true"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#16a34a" stroke-width="2"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg></div>
+              <div class="tx-info"><p class="tx-desc">PIX recebido</p><p class="tx-meta">Carlos Menezes</p></div>
+              <div class="tx-right">
+                <p class="tx-amount credit">+R$ 840,00</p>
+                <p class="tx-datetime">26/06 08:22</p>
+                <span class="badge badge-active" style="margin-top:0.25rem">Concluida</span>
+              </div>
+            </li>
+            <li class="tx-item">
+              <div class="tx-icon-box debit" aria-hidden="true"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#d97706" stroke-width="2"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg></div>
+              <div class="tx-info"><p class="tx-desc">Farmacia</p><p class="tx-meta">Drogasil — Compra debito</p></div>
+              <div class="tx-right">
+                <p class="tx-amount debit">-R$ 52,80</p>
+                <p class="tx-datetime">25/06 17:30</p>
+                <span class="badge badge-active" style="margin-top:0.25rem">Concluida</span>
+              </div>
+            </li>
+            <li class="tx-item">
+              <div class="tx-icon-box pix-out" aria-hidden="true"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg></div>
+              <div class="tx-info"><p class="tx-desc">PIX enviado</p><p class="tx-meta">Ana Paula Costa</p></div>
+              <div class="tx-right">
+                <p class="tx-amount debit">-R$ 320,00</p>
+                <p class="tx-datetime">24/06 12:45</p>
+                <span class="badge badge-active" style="margin-top:0.25rem">Concluida</span>
+              </div>
+            </li>
+            <li class="tx-item">
+              <div class="tx-icon-box pix-in" aria-hidden="true"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#16a34a" stroke-width="2"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg></div>
+              <div class="tx-info"><p class="tx-desc">PIX recebido</p><p class="tx-meta">Felipe Barros</p></div>
+              <div class="tx-right">
+                <p class="tx-amount credit">+R$ 750,00</p>
+                <p class="tx-datetime">23/06 09:00</p>
+                <span class="badge badge-active" style="margin-top:0.25rem">Concluida</span>
+              </div>
+            </li>
+            <li class="tx-item">
+              <div class="tx-icon-box debit" aria-hidden="true"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#d97706" stroke-width="2"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg></div>
+              <div class="tx-info"><p class="tx-desc">Restaurante</p><p class="tx-meta">Outback Steakhouse — Compra debito</p></div>
+              <div class="tx-right">
+                <p class="tx-amount debit">-R$ 128,60</p>
+                <p class="tx-datetime">22/06 21:15</p>
+                <span class="badge badge-active" style="margin-top:0.25rem">Concluida</span>
+              </div>
+            </li>
+          </ul>
+
+          <!-- Paginacao -->
+          <div class="tx-list-footer">
+            <p style="font-size:0.8125rem;color:var(--color-text-muted)">Exibindo 1–10 de 23 resultados</p>
+            <nav aria-label="Paginacao" class="pagination">
+              <button class="page-btn" disabled aria-label="Pagina anterior">Anterior</button>
+              <button class="page-btn active" aria-current="page">1</button>
+              <button class="page-btn" aria-label="Pagina 2">2</button>
+              <button class="page-btn" aria-label="Pagina 3">3</button>
+              <button class="page-btn" aria-label="Proxima pagina">Proxima</button>
+            </nav>
+          </div>
+        </div>
+      </section>
+
+      <!-- VARIANTE: Estado vazio -->
+      <section aria-label="Variante — Sem movimentacoes">
+        <h3 style="font-size:0.7rem;font-weight:700;color:var(--color-text-muted);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:0.75rem">Variante — Nenhuma movimentacao no periodo</h3>
+        <div class="tx-list-card">
+          <div class="tx-list-header">
+            <h2 class="tx-list-title">Movimentacoes</h2>
+            <span class="tx-count">0 transacoes</span>
+          </div>
+          <div class="empty-state">
+            <div class="empty-state-icon">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+            </div>
+            <p class="empty-state-title">Nenhuma movimentacao encontrada</p>
+            <p class="empty-state-desc">Nenhuma transacao foi encontrada para o periodo e filtros selecionados. Tente ajustar os filtros.</p>
+            <button class="btn btn-secondary">Limpar filtros</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- VARIANTE: Loading -->
+      <section aria-label="Variante — Carregando extrato" aria-busy="true">
+        <h3 style="font-size:0.7rem;font-weight:700;color:var(--color-text-muted);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:0.75rem">Variante — Carregando</h3>
+        <div class="tx-list-card">
+          <div class="tx-list-header">
+            <div class="skeleton skeleton-text" style="width:10rem"></div>
+            <div class="skeleton skeleton-text" style="width:6rem"></div>
+          </div>
+          <ul style="list-style:none">
+            <li class="tx-item" style="border-bottom:1px solid var(--color-border)">
+              <div class="skeleton" style="width:2.25rem;height:2.25rem;border-radius:50%"></div>
+              <div style="flex:1;display:flex;flex-direction:column;gap:0.5rem"><div class="skeleton skeleton-text" style="width:60%"></div><div class="skeleton skeleton-text" style="width:40%"></div></div>
+              <div style="display:flex;flex-direction:column;gap:0.5rem;align-items:flex-end"><div class="skeleton skeleton-text" style="width:5rem"></div><div class="skeleton skeleton-text" style="width:3.5rem"></div></div>
+            </li>
+            <li class="tx-item" style="border-bottom:1px solid var(--color-border)">
+              <div class="skeleton" style="width:2.25rem;height:2.25rem;border-radius:50%"></div>
+              <div style="flex:1;display:flex;flex-direction:column;gap:0.5rem"><div class="skeleton skeleton-text" style="width:50%"></div><div class="skeleton skeleton-text" style="width:35%"></div></div>
+              <div style="display:flex;flex-direction:column;gap:0.5rem;align-items:flex-end"><div class="skeleton skeleton-text" style="width:5rem"></div><div class="skeleton skeleton-text" style="width:3.5rem"></div></div>
+            </li>
+            <li class="tx-item">
+              <div class="skeleton" style="width:2.25rem;height:2.25rem;border-radius:50%"></div>
+              <div style="flex:1;display:flex;flex-direction:column;gap:0.5rem"><div class="skeleton skeleton-text" style="width:65%"></div><div class="skeleton skeleton-text" style="width:45%"></div></div>
+              <div style="display:flex;flex-direction:column;gap:0.5rem;align-items:flex-end"><div class="skeleton skeleton-text" style="width:5rem"></div><div class="skeleton skeleton-text" style="width:3.5rem"></div></div>
+            </li>
+          </ul>
+        </div>
+      </section>
+
+    </main>
+  </div>
+
+  <nav class="bottom-nav" aria-label="Navegacao mobile">
+    <div class="bottom-nav-items">
+      <a href="dashboard.html" class="bottom-nav-item"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>Inicio</a>
+      <a href="carteira.html" class="bottom-nav-item"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>Carteira</a>
+      <a href="transferencia.html" class="bottom-nav-item"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>Pix</a>
+      <a href="extrato.html" class="bottom-nav-item active" aria-current="page"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/></svg>Extrato</a>
+      <a href="perfil.html" class="bottom-nav-item"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M20 21a8 8 0 10-16 0"/></svg>Perfil</a>
+    </div>
+  </nav>
+</div>
+
+<script>
+  document.querySelector('.dark-toggle').addEventListener('click', function() {
+    const isDark = document.documentElement.classList.contains('dark');
+    this.textContent = isDark ? 'Modo escuro' : 'Modo claro';
+  });
+</script>
+</body>
+</html>

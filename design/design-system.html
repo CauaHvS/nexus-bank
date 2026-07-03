@@ -1,0 +1,618 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Nexus Bank — Design System</title>
+  <link rel="stylesheet" href="design-system.css" />
+  <style>
+    .ds-page { max-width: 960px; margin: 0 auto; padding: 2rem 1rem 6rem; }
+    .ds-section { margin-bottom: 3rem; }
+    .ds-section-title {
+      font-size: 1.25rem;
+      font-weight: 700;
+      color: var(--color-text);
+      border-bottom: 2px solid var(--color-primary);
+      padding-bottom: 0.5rem;
+      margin-bottom: 1.5rem;
+    }
+    .ds-row { display: flex; flex-wrap: wrap; gap: 0.75rem; align-items: flex-start; margin-bottom: 1rem; }
+    .ds-label { font-size: 0.75rem; color: var(--color-text-muted); margin-bottom: 0.25rem; }
+    .ds-box { padding: 0.5rem 0.75rem; border-radius: 0.5rem; border: 1px solid var(--color-border); }
+
+    .color-swatch {
+      width: 5rem;
+      height: 3rem;
+      border-radius: 0.5rem;
+      border: 1px solid var(--color-border);
+    }
+    .color-item { display: flex; flex-direction: column; gap: 0.25rem; }
+    .color-item span { font-size: 0.7rem; color: var(--color-text-muted); }
+
+    .dark-toggle-bar {
+      position: fixed;
+      top: 1rem;
+      right: 1rem;
+      z-index: 500;
+    }
+
+    .demo-table-row-credit { background-color: transparent; }
+    .demo-table-row-debit  { background-color: transparent; }
+
+    .skeleton-row { display: flex; flex-direction: column; gap: 0.5rem; }
+    .skeleton-row .skeleton { margin-bottom: 0; }
+
+    .ds-divider { border: none; border-top: 1px solid var(--color-border); margin: 2rem 0; }
+  </style>
+</head>
+<body>
+
+<!-- Dark mode toggle fixo -->
+<div class="dark-toggle-bar">
+  <button class="btn btn-secondary btn-sm" onclick="document.documentElement.classList.toggle('dark')" aria-label="Alternar dark mode">
+    Modo escuro
+  </button>
+</div>
+
+<main class="ds-page">
+  <header style="margin-bottom:2.5rem">
+    <h1 style="font-size:2rem;font-weight:700;color:var(--color-primary)">Nexus Bank</h1>
+    <p style="color:var(--color-text-muted);margin-top:0.25rem">Design System — Tokens, Componentes e Padrões</p>
+  </header>
+
+  <!-- CORES -->
+  <section class="ds-section" aria-labelledby="sec-colors">
+    <h2 class="ds-section-title" id="sec-colors">Paleta de Cores</h2>
+    <div class="ds-row">
+      <div class="color-item">
+        <div class="color-swatch" style="background:#2563eb"></div>
+        <span>Primary #2563eb</span>
+      </div>
+      <div class="color-item">
+        <div class="color-swatch" style="background:#1d4ed8"></div>
+        <span>Primary Hover #1d4ed8</span>
+      </div>
+      <div class="color-item">
+        <div class="color-swatch" style="background:#eff6ff"></div>
+        <span>Primary Light #eff6ff</span>
+      </div>
+      <div class="color-item">
+        <div class="color-swatch" style="background:#16a34a"></div>
+        <span>Success #16a34a</span>
+      </div>
+      <div class="color-item">
+        <div class="color-swatch" style="background:#dc2626"></div>
+        <span>Error #dc2626</span>
+      </div>
+      <div class="color-item">
+        <div class="color-swatch" style="background:#d97706"></div>
+        <span>Warning #d97706</span>
+      </div>
+      <div class="color-item">
+        <div class="color-swatch" style="background:#f8fafc;border:1px solid #e2e8f0"></div>
+        <span>Bg #f8fafc</span>
+      </div>
+      <div class="color-item">
+        <div class="color-swatch" style="background:#ffffff;border:1px solid #e2e8f0"></div>
+        <span>Surface #ffffff</span>
+      </div>
+      <div class="color-item">
+        <div class="color-swatch" style="background:#0f172a"></div>
+        <span>Text #0f172a</span>
+      </div>
+      <div class="color-item">
+        <div class="color-swatch" style="background:#64748b"></div>
+        <span>Muted #64748b</span>
+      </div>
+    </div>
+    <div class="ds-label" style="margin-top:1rem">Dark mode</div>
+    <div class="ds-row">
+      <div class="color-item">
+        <div class="color-swatch" style="background:#030712"></div>
+        <span>Dark Bg #030712</span>
+      </div>
+      <div class="color-item">
+        <div class="color-swatch" style="background:#111827"></div>
+        <span>Dark Surface #111827</span>
+      </div>
+      <div class="color-item">
+        <div class="color-swatch" style="background:#1f2937"></div>
+        <span>Dark Border #1f2937</span>
+      </div>
+      <div class="color-item">
+        <div class="color-swatch" style="background:#f9fafb;border:1px solid #333"></div>
+        <span>Dark Text #f9fafb</span>
+      </div>
+      <div class="color-item">
+        <div class="color-swatch" style="background:#9ca3af"></div>
+        <span>Dark Muted #9ca3af</span>
+      </div>
+    </div>
+  </section>
+
+  <hr class="ds-divider" />
+
+  <!-- TIPOGRAFIA -->
+  <section class="ds-section" aria-labelledby="sec-typo">
+    <h2 class="ds-section-title" id="sec-typo">Tipografia</h2>
+    <p style="font-size:2rem;font-weight:700;margin-bottom:0.5rem">Heading 3xl — Saldo R$ 12.450,00</p>
+    <p style="font-size:1.5rem;font-weight:600;margin-bottom:0.5rem">Heading 2xl — Conta Corrente</p>
+    <p style="font-size:1.25rem;font-weight:600;margin-bottom:0.5rem">Heading xl — Transferencia PIX</p>
+    <p style="font-size:1.125rem;font-weight:500;margin-bottom:0.5rem">Heading lg — Ultimas Movimentacoes</p>
+    <p style="font-size:1rem;font-weight:400;margin-bottom:0.5rem">Body base — PIX recebido de Lucas Ferreira no valor de R$ 500,00</p>
+    <p style="font-size:0.875rem;font-weight:400;margin-bottom:0.5rem;color:var(--color-text-muted)">Small — Conta 123456-7 / Ag 0001 — 02/07/2026</p>
+    <p style="font-size:0.75rem;font-weight:400;color:var(--color-text-muted)">XS — Ultima atualizacao: agora ha pouco</p>
+  </section>
+
+  <hr class="ds-divider" />
+
+  <!-- BOTOES -->
+  <section class="ds-section" aria-labelledby="sec-btns">
+    <h2 class="ds-section-title" id="sec-btns">Botoes</h2>
+
+    <div class="ds-label">Variantes</div>
+    <div class="ds-row">
+      <button class="btn btn-primary">Primario</button>
+      <button class="btn btn-secondary">Secundario</button>
+      <button class="btn btn-destructive">Destrutivo</button>
+      <button class="btn btn-ghost">Ghost</button>
+      <button class="btn btn-link">Link</button>
+    </div>
+
+    <div class="ds-label">Tamanhos</div>
+    <div class="ds-row" style="align-items:center">
+      <button class="btn btn-primary btn-sm">Pequeno</button>
+      <button class="btn btn-primary">Medio</button>
+      <button class="btn btn-primary btn-lg">Grande</button>
+    </div>
+
+    <div class="ds-label">Disabled</div>
+    <div class="ds-row">
+      <button class="btn btn-primary" disabled>Primario disabled</button>
+      <button class="btn btn-secondary" disabled>Secundario disabled</button>
+    </div>
+
+    <div class="ds-label">Loading (spinner)</div>
+    <div class="ds-row">
+      <button class="btn btn-primary btn-loading" aria-busy="true">Entrando...</button>
+      <button class="btn btn-primary btn-loading btn-lg" aria-busy="true">Processando...</button>
+    </div>
+
+    <div class="ds-label">Largura total</div>
+    <div style="max-width:20rem">
+      <button class="btn btn-primary btn-full">Confirmar transferencia</button>
+    </div>
+  </section>
+
+  <hr class="ds-divider" />
+
+  <!-- INPUTS -->
+  <section class="ds-section" aria-labelledby="sec-inputs">
+    <h2 class="ds-section-title" id="sec-inputs">Inputs</h2>
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(18rem,1fr));gap:1.5rem">
+      <div class="input-group">
+        <label class="input-label" for="i-email">E-mail</label>
+        <input class="input" id="i-email" type="email" placeholder="seu@email.com" />
+      </div>
+
+      <div class="input-group">
+        <label class="input-label" for="i-err">CPF</label>
+        <input class="input input-error" id="i-err" type="text" value="123.456.789-0X" />
+        <span class="input-hint input-hint-error">CPF invalido. Verifique e tente novamente.</span>
+      </div>
+
+      <div class="input-group">
+        <label class="input-label" for="i-ok">Conta</label>
+        <input class="input input-success" id="i-ok" type="text" value="123456-7" />
+        <span class="input-hint input-hint-success">Conta encontrada.</span>
+      </div>
+
+      <div class="input-group">
+        <label class="input-label" for="i-icon">Valor</label>
+        <div class="input-wrapper">
+          <span class="input-icon input-icon-left-pos" aria-hidden="true">R$</span>
+          <input class="input input-icon-left" id="i-icon" type="text" placeholder="0,00" />
+        </div>
+      </div>
+
+      <div class="input-group">
+        <label class="input-label" for="i-dis">Agencia</label>
+        <input class="input" id="i-dis" type="text" value="0001" disabled />
+        <span class="input-hint">Campo nao editavel</span>
+      </div>
+
+      <div class="input-group">
+        <label class="input-label" for="i-pwd">Senha</label>
+        <div class="input-wrapper">
+          <input class="input input-icon-right" id="i-pwd" type="password" placeholder="••••••••" />
+          <span class="input-icon input-icon-right-pos" aria-hidden="true">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+          </span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <hr class="ds-divider" />
+
+  <!-- CARDS -->
+  <section class="ds-section" aria-labelledby="sec-cards">
+    <h2 class="ds-section-title" id="sec-cards">Cards</h2>
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(18rem,1fr));gap:1.5rem">
+      <div class="card">
+        <div class="card-body">
+          <p class="ds-label">Saldo disponivel</p>
+          <p style="font-size:1.75rem;font-weight:700;color:var(--color-text)">R$ 12.450,00</p>
+          <p style="font-size:0.875rem;color:var(--color-success);margin-top:0.25rem">+R$ 87,32 este mes</p>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <h3 style="font-weight:600;font-size:1rem">Conta Corrente</h3>
+          <p style="font-size:0.75rem;color:var(--color-text-muted);margin-top:0.25rem">Ag 0001 / Conta 123456-7</p>
+        </div>
+        <div class="card-body">
+          <p style="font-size:1.5rem;font-weight:700">R$ 12.450,00</p>
+        </div>
+        <div class="card-footer">
+          <button class="btn btn-secondary btn-sm">Ver extrato</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <h3 style="font-weight:600;font-size:1rem">Transferencia enviada</h3>
+        </div>
+        <div class="card-body" style="display:flex;flex-direction:column;gap:0.75rem">
+          <div style="display:flex;justify-content:space-between">
+            <span style="color:var(--color-text-muted);font-size:0.875rem">Para</span>
+            <span style="font-weight:500;font-size:0.875rem">Joao da Silva</span>
+          </div>
+          <div style="display:flex;justify-content:space-between">
+            <span style="color:var(--color-text-muted);font-size:0.875rem">Valor</span>
+            <span style="font-weight:700;color:var(--color-error)">-R$ 1.200,00</span>
+          </div>
+          <div style="display:flex;justify-content:space-between">
+            <span style="color:var(--color-text-muted);font-size:0.875rem">Data</span>
+            <span style="font-size:0.875rem">30/06/2026 14:32</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <hr class="ds-divider" />
+
+  <!-- BADGES -->
+  <section class="ds-section" aria-labelledby="sec-badges">
+    <h2 class="ds-section-title" id="sec-badges">Badges de Status</h2>
+    <div class="ds-row">
+      <span class="badge badge-active">Ativo</span>
+      <span class="badge badge-inactive">Inativo</span>
+      <span class="badge badge-pending">Pendente</span>
+      <span class="badge badge-blocked">Bloqueado</span>
+      <span class="badge badge-approved">Aprovado</span>
+      <span class="badge badge-cancelled">Cancelado</span>
+    </div>
+  </section>
+
+  <hr class="ds-divider" />
+
+  <!-- TABELA EXTRATO -->
+  <section class="ds-section" aria-labelledby="sec-table">
+    <h2 class="ds-section-title" id="sec-table">Tabela de Extrato</h2>
+    <div class="table-wrapper">
+      <table class="table" role="table">
+        <thead>
+          <tr>
+            <th scope="col">Tipo</th>
+            <th scope="col">Descricao</th>
+            <th scope="col">Favorecido</th>
+            <th scope="col">Data</th>
+            <th scope="col">Valor</th>
+            <th scope="col">Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><span class="badge badge-approved">PIX</span></td>
+            <td>PIX recebido</td>
+            <td>Lucas Ferreira</td>
+            <td>02/07/2026 09:15</td>
+            <td class="amount-credit">+R$ 500,00</td>
+            <td><span class="badge badge-active">Concluida</span></td>
+          </tr>
+          <tr>
+            <td><span class="badge badge-inactive">Debito</span></td>
+            <td>Compra debito</td>
+            <td>Supermercado Extra</td>
+            <td>01/07/2026 18:42</td>
+            <td class="amount-debit">-R$ 187,40</td>
+            <td><span class="badge badge-active">Concluida</span></td>
+          </tr>
+          <tr>
+            <td><span class="badge badge-inactive">TED</span></td>
+            <td>TED enviada</td>
+            <td>Joao da Silva</td>
+            <td>30/06/2026 14:32</td>
+            <td class="amount-debit">-R$ 1.200,00</td>
+            <td><span class="badge badge-active">Concluida</span></td>
+          </tr>
+          <tr>
+            <td><span class="badge badge-approved">PIX</span></td>
+            <td>PIX recebido</td>
+            <td>Maria Lima</td>
+            <td>28/06/2026 11:05</td>
+            <td class="amount-credit">+R$ 250,00</td>
+            <td><span class="badge badge-pending">Pendente</span></td>
+          </tr>
+          <tr>
+            <td><span class="badge badge-inactive">Debito</span></td>
+            <td>Compra debito</td>
+            <td>Posto Shell</td>
+            <td>27/06/2026 20:10</td>
+            <td class="amount-debit">-R$ 95,60</td>
+            <td><span class="badge badge-cancelled">Cancelada</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <hr class="ds-divider" />
+
+  <!-- MODAL -->
+  <section class="ds-section" aria-labelledby="sec-modal">
+    <h2 class="ds-section-title" id="sec-modal">Modal (estatico)</h2>
+    <div style="position:relative;border:1px solid var(--color-border);border-radius:0.75rem;overflow:hidden;min-height:280px;background:rgb(0 0 0/0.4)">
+      <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;padding:1rem">
+        <div class="modal" style="position:static;max-width:24rem">
+          <div class="modal-header">
+            <h3 style="font-weight:600;font-size:1.125rem">Confirmar saida</h3>
+            <button class="btn btn-ghost btn-sm" aria-label="Fechar modal">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            </button>
+          </div>
+          <div class="modal-body">
+            <p style="color:var(--color-text-muted);font-size:0.875rem">Tem certeza que deseja sair da sua conta? Voce precisara fazer login novamente.</p>
+          </div>
+          <div class="modal-footer">
+            <button class="btn btn-secondary">Cancelar</button>
+            <button class="btn btn-destructive">Sair da conta</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <hr class="ds-divider" />
+
+  <!-- SKELETON -->
+  <section class="ds-section" aria-labelledby="sec-skeleton">
+    <h2 class="ds-section-title" id="sec-skeleton">Skeletons de Carregamento</h2>
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(18rem,1fr));gap:1.5rem">
+
+      <div>
+        <p class="ds-label" style="margin-bottom:0.5rem">Skeleton de card</p>
+        <div class="card">
+          <div class="card-body" style="display:flex;flex-direction:column;gap:0.75rem">
+            <div class="skeleton skeleton-title" style="width:60%"></div>
+            <div class="skeleton" style="height:2rem;width:80%"></div>
+            <div class="skeleton skeleton-text" style="width:40%"></div>
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <p class="ds-label" style="margin-bottom:0.5rem">Skeleton de lista</p>
+        <div class="card">
+          <div class="card-body" style="display:flex;flex-direction:column;gap:1rem">
+            <div style="display:flex;gap:0.75rem;align-items:center">
+              <div class="skeleton skeleton-avatar"></div>
+              <div style="flex:1;display:flex;flex-direction:column;gap:0.5rem">
+                <div class="skeleton skeleton-text" style="width:70%"></div>
+                <div class="skeleton skeleton-text" style="width:40%"></div>
+              </div>
+              <div class="skeleton skeleton-text" style="width:5rem"></div>
+            </div>
+            <div style="display:flex;gap:0.75rem;align-items:center">
+              <div class="skeleton skeleton-avatar"></div>
+              <div style="flex:1;display:flex;flex-direction:column;gap:0.5rem">
+                <div class="skeleton skeleton-text" style="width:60%"></div>
+                <div class="skeleton skeleton-text" style="width:35%"></div>
+              </div>
+              <div class="skeleton skeleton-text" style="width:5rem"></div>
+            </div>
+            <div style="display:flex;gap:0.75rem;align-items:center">
+              <div class="skeleton skeleton-avatar"></div>
+              <div style="flex:1;display:flex;flex-direction:column;gap:0.5rem">
+                <div class="skeleton skeleton-text" style="width:75%"></div>
+                <div class="skeleton skeleton-text" style="width:45%"></div>
+              </div>
+              <div class="skeleton skeleton-text" style="width:5rem"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <p class="ds-label" style="margin-bottom:0.5rem">Skeleton de titulo + texto</p>
+        <div style="display:flex;flex-direction:column;gap:0.75rem">
+          <div class="skeleton skeleton-title" style="width:50%"></div>
+          <div class="skeleton skeleton-text"></div>
+          <div class="skeleton skeleton-text" style="width:85%"></div>
+          <div class="skeleton skeleton-text" style="width:70%"></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <hr class="ds-divider" />
+
+  <!-- EMPTY STATE -->
+  <section class="ds-section" aria-labelledby="sec-empty">
+    <h2 class="ds-section-title" id="sec-empty">Empty State</h2>
+    <div class="card" style="max-width:28rem">
+      <div class="empty-state">
+        <div class="empty-state-icon">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="2">
+            <path d="M9 12h6m-3-3v6m9-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+          </svg>
+        </div>
+        <p class="empty-state-title">Nenhuma movimentacao encontrada</p>
+        <p class="empty-state-desc">Voce ainda nao realizou nenhuma transacao neste periodo. Faca uma transferencia ou pix para comecar.</p>
+        <button class="btn btn-primary">Fazer transferencia</button>
+      </div>
+    </div>
+  </section>
+
+  <hr class="ds-divider" />
+
+  <!-- TOASTS -->
+  <section class="ds-section" aria-labelledby="sec-toasts">
+    <h2 class="ds-section-title" id="sec-toasts">Toasts</h2>
+    <div style="display:flex;flex-direction:column;gap:0.75rem;max-width:24rem">
+      <div class="toast toast-success" role="alert" aria-live="polite">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#16a34a" stroke-width="2" style="flex-shrink:0;margin-top:0.1rem"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+        <div>
+          <p class="toast-title">Transferencia realizada</p>
+          <p class="toast-desc">R$ 500,00 enviados para Maria Clara Souza com sucesso.</p>
+        </div>
+      </div>
+      <div class="toast toast-error" role="alert" aria-live="assertive">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#dc2626" stroke-width="2" style="flex-shrink:0;margin-top:0.1rem"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+        <div>
+          <p class="toast-title">Saldo insuficiente</p>
+          <p class="toast-desc">Voce nao tem saldo suficiente para realizar esta operacao.</p>
+        </div>
+      </div>
+      <div class="toast toast-warning" role="alert" aria-live="polite">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#d97706" stroke-width="2" style="flex-shrink:0;margin-top:0.1rem"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+        <div>
+          <p class="toast-title">Limite Pix atingido</p>
+          <p class="toast-desc">Voce atingiu o limite diario de R$ 5.000,00 para PIX.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <hr class="ds-divider" />
+
+  <!-- ALERTS -->
+  <section class="ds-section" aria-labelledby="sec-alerts">
+    <h2 class="ds-section-title" id="sec-alerts">Alerts / Banners</h2>
+    <div style="display:flex;flex-direction:column;gap:0.75rem">
+      <div class="alert alert-error" role="alert">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink:0;margin-top:0.1rem"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+        E-mail ou senha incorretos. Verifique seus dados e tente novamente.
+      </div>
+      <div class="alert alert-success" role="status">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink:0;margin-top:0.1rem"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+        Conta criada com sucesso! Bem-vindo ao Nexus Bank.
+      </div>
+      <div class="alert alert-warning" role="status">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink:0;margin-top:0.1rem"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+        Esta transferencia ja foi processada anteriormente (conflito 409).
+      </div>
+    </div>
+  </section>
+
+  <hr class="ds-divider" />
+
+  <!-- TOGGLE -->
+  <section class="ds-section" aria-labelledby="sec-toggle">
+    <h2 class="ds-section-title" id="sec-toggle">Toggle Switch</h2>
+    <div style="display:flex;flex-direction:column;gap:1rem">
+      <label style="display:flex;align-items:center;gap:0.75rem;cursor:pointer">
+        <span class="toggle">
+          <input type="checkbox" checked />
+          <span class="toggle-slider"></span>
+        </span>
+        <span style="font-size:0.875rem">MFA ativado</span>
+      </label>
+      <label style="display:flex;align-items:center;gap:0.75rem;cursor:pointer">
+        <span class="toggle">
+          <input type="checkbox" />
+          <span class="toggle-slider"></span>
+        </span>
+        <span style="font-size:0.875rem">Modo escuro</span>
+      </label>
+      <label style="display:flex;align-items:center;gap:0.75rem;cursor:pointer">
+        <span class="toggle">
+          <input type="checkbox" disabled />
+          <span class="toggle-slider"></span>
+        </span>
+        <span style="font-size:0.875rem;opacity:0.5">Notificacoes (desativado)</span>
+      </label>
+    </div>
+  </section>
+
+  <hr class="ds-divider" />
+
+  <!-- AVATAR -->
+  <section class="ds-section" aria-labelledby="sec-avatar">
+    <h2 class="ds-section-title" id="sec-avatar">Avatar</h2>
+    <div class="ds-row" style="align-items:center">
+      <div class="avatar avatar-xl">LF</div>
+      <div class="avatar avatar-lg">MC</div>
+      <div class="avatar">JS</div>
+      <div class="avatar" style="background-color:var(--color-success)">ML</div>
+      <div class="avatar" style="background-color:var(--color-warning);color:#0f172a">AN</div>
+    </div>
+  </section>
+
+  <hr class="ds-divider" />
+
+  <!-- PAGINACAO -->
+  <section class="ds-section" aria-labelledby="sec-pag">
+    <h2 class="ds-section-title" id="sec-pag">Paginacao</h2>
+    <nav aria-label="Paginacao de resultados">
+      <div class="pagination">
+        <button class="page-btn" disabled aria-label="Pagina anterior">Anterior</button>
+        <button class="page-btn active" aria-current="page" aria-label="Pagina 1">1</button>
+        <button class="page-btn" aria-label="Pagina 2">2</button>
+        <button class="page-btn" aria-label="Pagina 3">3</button>
+        <span style="padding:0 0.25rem;color:var(--color-text-muted);font-size:0.875rem">...</span>
+        <button class="page-btn" aria-label="Pagina 8">8</button>
+        <button class="page-btn" aria-label="Proxima pagina">Proxima</button>
+      </div>
+    </nav>
+  </section>
+
+  <hr class="ds-divider" />
+
+  <!-- STEP INDICATOR -->
+  <section class="ds-section" aria-labelledby="sec-steps">
+    <h2 class="ds-section-title" id="sec-steps">Indicador de Passos</h2>
+    <div class="steps" style="max-width:32rem">
+      <div class="step step-done">
+        <div class="step-number" aria-label="Passo 1 concluido">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>
+        </div>
+        <span class="step-label">Destinatario</span>
+      </div>
+      <div class="step-connector done"></div>
+      <div class="step step-active">
+        <div class="step-number" aria-current="step">2</div>
+        <span class="step-label">Valor</span>
+      </div>
+      <div class="step-connector"></div>
+      <div class="step step-pending">
+        <div class="step-number">3</div>
+        <span class="step-label">Revisao</span>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<script>
+  // Dark mode toggle aplica .dark no <html>
+  document.querySelector('.dark-toggle-bar button').addEventListener('click', function() {
+    const isDark = document.documentElement.classList.contains('dark');
+    this.textContent = isDark ? 'Modo escuro' : 'Modo claro';
+  });
+</script>
+</body>
+</html>

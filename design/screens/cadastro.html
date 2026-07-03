@@ -1,0 +1,427 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Nexus Bank — Criar Conta</title>
+  <link rel="stylesheet" href="../design-system.css" />
+  <style>
+    body {
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-start;
+      padding: 2rem 1rem 4rem;
+      background-color: var(--color-bg);
+    }
+
+    .register-wrapper {
+      width: 100%;
+      max-width: 480px;
+    }
+
+    .brand {
+      text-align: center;
+      margin-bottom: 1.75rem;
+    }
+    .brand-logo {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.625rem;
+      text-decoration: none;
+    }
+    .brand-icon {
+      width: 2.5rem;
+      height: 2.5rem;
+      background-color: var(--color-primary);
+      border-radius: 0.625rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .brand-name {
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: var(--color-text);
+    }
+
+    .register-card {
+      background-color: var(--color-surface);
+      border: 1px solid var(--color-border);
+      border-radius: 1rem;
+      box-shadow: var(--shadow-md);
+      padding: 2rem;
+    }
+    .register-card h1 {
+      font-size: 1.25rem;
+      font-weight: 600;
+      margin-bottom: 0.25rem;
+    }
+    .register-card .subtitle {
+      font-size: 0.875rem;
+      color: var(--color-text-muted);
+      margin-bottom: 1.5rem;
+    }
+
+    .form-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 1rem;
+    }
+    @media (min-width: 480px) {
+      .form-grid-2 {
+        grid-template-columns: 1fr 1fr;
+      }
+    }
+
+    .checkbox-group {
+      display: flex;
+      align-items: flex-start;
+      gap: 0.625rem;
+      margin-top: 0.5rem;
+    }
+    .checkbox-group input[type="checkbox"] {
+      margin-top: 0.1875rem;
+      width: 1rem;
+      height: 1rem;
+      accent-color: var(--color-primary);
+      flex-shrink: 0;
+    }
+    .checkbox-label {
+      font-size: 0.875rem;
+      color: var(--color-text-muted);
+      line-height: 1.5;
+    }
+    .checkbox-label a {
+      color: var(--color-primary);
+      text-decoration: none;
+      font-weight: 500;
+    }
+    .checkbox-label a:hover { text-decoration: underline; }
+
+    .password-strength {
+      display: flex;
+      gap: 0.25rem;
+      margin-top: 0.375rem;
+    }
+    .strength-bar {
+      flex: 1;
+      height: 0.25rem;
+      border-radius: 9999px;
+      background-color: var(--color-border);
+    }
+    .strength-bar.filled-weak   { background-color: var(--color-error); }
+    .strength-bar.filled-medium { background-color: var(--color-warning); }
+    .strength-bar.filled-strong { background-color: var(--color-success); }
+
+    .signin-row {
+      text-align: center;
+      font-size: 0.875rem;
+      color: var(--color-text-muted);
+      margin-top: 1.5rem;
+    }
+    .signin-row a {
+      color: var(--color-primary);
+      font-weight: 500;
+      text-decoration: none;
+    }
+    .signin-row a:hover { text-decoration: underline; }
+
+    .dark-btn {
+      position: fixed;
+      top: 1rem;
+      right: 1rem;
+    }
+
+    .variant-label {
+      font-size: 0.7rem;
+      font-weight: 700;
+      color: var(--color-text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-top: 2rem;
+      margin-bottom: 0.5rem;
+      display: block;
+    }
+  </style>
+</head>
+<body>
+
+<button class="btn btn-secondary btn-sm dark-btn" onclick="document.documentElement.classList.toggle('dark')" aria-label="Alternar dark mode">
+  Modo escuro
+</button>
+
+<div class="register-wrapper">
+
+  <!-- Brand -->
+  <div class="brand">
+    <a href="login.html" class="brand-logo" aria-label="Nexus Bank - Voltar ao login">
+      <div class="brand-icon" aria-hidden="true">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5">
+          <rect x="2" y="3" width="20" height="14" rx="2"/>
+          <line x1="8" y1="21" x2="16" y2="21"/>
+          <line x1="12" y1="17" x2="12" y2="21"/>
+        </svg>
+      </div>
+      <span class="brand-name">Nexus Bank</span>
+    </a>
+  </div>
+
+  <!-- Estado padrao: formulario vazio -->
+  <div class="register-card">
+    <h1>Abra sua conta</h1>
+    <p class="subtitle">Gratis, sem taxas e em menos de 5 minutos</p>
+
+    <form novalidate>
+      <div class="form-grid">
+
+        <div class="input-group">
+          <label class="input-label" for="nome">Nome completo</label>
+          <input
+            class="input"
+            id="nome"
+            type="text"
+            name="fullName"
+            placeholder="Lucas Ferreira dos Santos"
+            autocomplete="name"
+            required
+          />
+        </div>
+
+        <div class="input-group">
+          <label class="input-label" for="cpf">CPF</label>
+          <input
+            class="input"
+            id="cpf"
+            type="text"
+            name="cpf"
+            placeholder="123.456.789-00"
+            maxlength="14"
+            autocomplete="off"
+            required
+            aria-describedby="cpf-hint"
+          />
+          <span class="input-hint" id="cpf-hint">Somente numeros, sem pontos ou tracoes</span>
+        </div>
+
+        <div class="input-group">
+          <label class="input-label" for="email">E-mail</label>
+          <input
+            class="input"
+            id="email"
+            type="email"
+            name="email"
+            placeholder="lucas@email.com"
+            autocomplete="email"
+            required
+          />
+        </div>
+
+        <div class="input-group">
+          <label class="input-label" for="telefone">Telefone</label>
+          <input
+            class="input"
+            id="telefone"
+            type="tel"
+            name="phone"
+            placeholder="(11) 99999-0000"
+            autocomplete="tel"
+            required
+          />
+        </div>
+
+        <div class="input-group">
+          <label class="input-label" for="senha">Senha</label>
+          <div class="input-wrapper">
+            <input
+              class="input input-icon-right"
+              id="senha"
+              type="password"
+              name="password"
+              placeholder="Minimo 8 caracteres"
+              autocomplete="new-password"
+              required
+              aria-describedby="senha-strength"
+            />
+            <button type="button" class="input-icon input-icon-right-pos" style="background:none;border:none;cursor:pointer;padding:0" aria-label="Mostrar senha">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+            </button>
+          </div>
+          <div class="password-strength" id="senha-strength" role="progressbar" aria-label="Forca da senha">
+            <div class="strength-bar"></div>
+            <div class="strength-bar"></div>
+            <div class="strength-bar"></div>
+            <div class="strength-bar"></div>
+          </div>
+        </div>
+
+        <div class="input-group">
+          <label class="input-label" for="confirmar-senha">Confirmar senha</label>
+          <input
+            class="input"
+            id="confirmar-senha"
+            type="password"
+            name="confirmPassword"
+            placeholder="Repita a senha"
+            autocomplete="new-password"
+            required
+          />
+        </div>
+
+      </div>
+
+      <div class="checkbox-group" style="margin-top:1.25rem">
+        <input type="checkbox" id="termos" name="terms" required />
+        <label class="checkbox-label" for="termos">
+          Li e aceito os <a href="#">Termos de Uso</a> e a <a href="#">Politica de Privacidade</a> do Nexus Bank
+        </label>
+      </div>
+
+      <button type="submit" class="btn btn-primary btn-full btn-lg" style="margin-top:1.5rem">
+        Criar conta
+      </button>
+    </form>
+
+    <div class="signin-row">
+      Ja tem conta? <a href="login.html">Entrar</a>
+    </div>
+  </div>
+
+  <!-- VARIANTE: Erros de validacao -->
+  <span class="variant-label">Variante — Erros de validacao</span>
+  <div class="register-card">
+    <h1>Abra sua conta</h1>
+    <p class="subtitle">Corrija os campos destacados para continuar</p>
+
+    <div class="alert alert-error" role="alert" style="margin-bottom:1rem">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink:0"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+      Ha 3 erros no formulario. Verifique os campos destacados.
+    </div>
+
+    <div class="form-grid">
+
+      <div class="input-group">
+        <label class="input-label" for="nome-err">Nome completo</label>
+        <input class="input" id="nome-err" type="text" value="Lucas Ferreira" />
+      </div>
+
+      <div class="input-group">
+        <label class="input-label" for="cpf-err">CPF</label>
+        <input
+          class="input input-error"
+          id="cpf-err"
+          type="text"
+          value="123.456.789-0X"
+          aria-invalid="true"
+          aria-describedby="cpf-err-hint"
+        />
+        <span class="input-hint input-hint-error" id="cpf-err-hint">CPF invalido. Verifique o numero digitado.</span>
+      </div>
+
+      <div class="input-group">
+        <label class="input-label" for="email-err">E-mail</label>
+        <input
+          class="input input-error"
+          id="email-err"
+          type="email"
+          value="lucas@"
+          aria-invalid="true"
+          aria-describedby="email-err-hint"
+        />
+        <span class="input-hint input-hint-error" id="email-err-hint">Digite um e-mail valido.</span>
+      </div>
+
+      <div class="input-group">
+        <label class="input-label" for="tel-err">Telefone</label>
+        <input class="input" id="tel-err" type="tel" value="(11) 99999-0000" />
+      </div>
+
+      <div class="input-group">
+        <label class="input-label" for="pwd-err">Senha</label>
+        <input class="input input-success" id="pwd-err" type="password" value="Senh@Forte123" />
+        <div class="password-strength">
+          <div class="strength-bar filled-strong"></div>
+          <div class="strength-bar filled-strong"></div>
+          <div class="strength-bar filled-strong"></div>
+          <div class="strength-bar filled-strong"></div>
+        </div>
+        <span class="input-hint input-hint-success">Senha forte</span>
+      </div>
+
+      <div class="input-group">
+        <label class="input-label" for="cpwd-err">Confirmar senha</label>
+        <input
+          class="input input-error"
+          id="cpwd-err"
+          type="password"
+          value="SenhaDiferente"
+          aria-invalid="true"
+          aria-describedby="cpwd-err-hint"
+        />
+        <span class="input-hint input-hint-error" id="cpwd-err-hint">As senhas nao coincidem.</span>
+      </div>
+
+    </div>
+
+    <div class="checkbox-group" style="margin-top:1.25rem">
+      <input type="checkbox" id="termos-err" name="terms" />
+      <label class="checkbox-label" for="termos-err">
+        Li e aceito os <a href="#">Termos de Uso</a> e a <a href="#">Politica de Privacidade</a>
+      </label>
+    </div>
+    <p class="input-hint input-hint-error" style="margin-top:0.25rem">Voce precisa aceitar os termos para continuar.</p>
+
+    <button type="button" class="btn btn-primary btn-full btn-lg" style="margin-top:1.5rem">
+      Criar conta
+    </button>
+
+    <div class="signin-row">
+      Ja tem conta? <a href="login.html">Entrar</a>
+    </div>
+  </div>
+
+  <!-- VARIANTE: Loading -->
+  <span class="variant-label">Variante — Criando conta (carregando)</span>
+  <div class="register-card">
+    <h1>Abra sua conta</h1>
+    <p class="subtitle">Gratis, sem taxas e em menos de 5 minutos</p>
+
+    <div class="form-grid" style="opacity:0.6;pointer-events:none">
+      <div class="input-group">
+        <label class="input-label" for="nome-l">Nome completo</label>
+        <input class="input" id="nome-l" type="text" value="Lucas Ferreira dos Santos" disabled />
+      </div>
+      <div class="input-group">
+        <label class="input-label" for="cpf-l">CPF</label>
+        <input class="input" id="cpf-l" type="text" value="123.456.789-00" disabled />
+      </div>
+      <div class="input-group">
+        <label class="input-label" for="email-l">E-mail</label>
+        <input class="input" id="email-l" type="email" value="lucas.ferreira@email.com" disabled />
+      </div>
+      <div class="input-group">
+        <label class="input-label" for="tel-l">Telefone</label>
+        <input class="input" id="tel-l" type="tel" value="(11) 98765-4321" disabled />
+      </div>
+    </div>
+
+    <button type="button" class="btn btn-primary btn-full btn-lg btn-loading" aria-busy="true" disabled style="margin-top:1.5rem">
+      Criando sua conta...
+    </button>
+
+    <div class="signin-row">
+      Ja tem conta? <a href="login.html">Entrar</a>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  document.querySelector('.dark-btn').addEventListener('click', function() {
+    const isDark = document.documentElement.classList.contains('dark');
+    this.textContent = isDark ? 'Modo escuro' : 'Modo claro';
+  });
+</script>
+</body>
+</html>

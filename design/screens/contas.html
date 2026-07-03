@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Nexus Bank — Minhas Contas</title>
+  <link rel="stylesheet" href="../design-system.css" />
+  <style>
+    .app-shell { display: flex; min-height: 100vh; background-color: var(--color-bg); }
+    .sidebar { width: 240px; background-color: var(--color-nav-bg); display: flex; flex-direction: column; flex-shrink: 0; position: fixed; top: 0; left: 0; bottom: 0; z-index: var(--z-sticky); overflow-y: auto; }
+    .sidebar-brand { display: flex; align-items: center; gap: 0.625rem; padding: 1.25rem 1rem; border-bottom: 1px solid #1f2937; text-decoration: none; }
+    .sidebar-brand-icon { width: 2rem; height: 2rem; background-color: var(--color-primary); border-radius: 0.5rem; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .sidebar-brand-name { font-size: 1rem; font-weight: 700; color: #f9fafb; }
+    .sidebar-nav { padding: 1rem 0.75rem; flex: 1; }
+    .sidebar-nav-label { font-size: 0.6875rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; color: #4b5563; padding: 0 0.5rem; margin-bottom: 0.5rem; margin-top: 1rem; }
+    .sidebar-nav-label:first-child { margin-top: 0; }
+    .nav-item { display: flex; align-items: center; gap: 0.75rem; padding: 0.625rem 0.75rem; border-radius: 0.5rem; color: var(--color-nav-text); text-decoration: none; font-size: 0.875rem; font-weight: 500; transition: background-color var(--transition-fast), color var(--transition-fast); margin-bottom: 0.125rem; }
+    .nav-item:hover { background-color: #1f2937; color: #e5e7eb; }
+    .nav-item.active { background-color: var(--color-nav-active-bg); color: #93c5fd; }
+    .nav-icon { width: 1.125rem; height: 1.125rem; flex-shrink: 0; }
+    .sidebar-user { padding: 0.75rem; border-top: 1px solid #1f2937; display: flex; align-items: center; gap: 0.75rem; }
+    .sidebar-user-name { font-size: 0.875rem; font-weight: 600; color: #f9fafb; }
+    .sidebar-user-email { font-size: 0.75rem; color: #6b7280; }
+    .main-area { margin-left: 240px; flex: 1; display: flex; flex-direction: column; min-width: 0; }
+    .topbar { background-color: var(--color-surface); border-bottom: 1px solid var(--color-border); padding: 0.875rem 1.5rem; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: var(--z-sticky); }
+    .topbar-title { font-size: 1.125rem; font-weight: 700; color: var(--color-text); }
+    .content { padding: 1.5rem; display: flex; flex-direction: column; gap: 1.5rem; max-width: 800px; }
+
+    .account-list-card {
+      background-color: var(--color-surface);
+      border: 1px solid var(--color-border);
+      border-radius: 0.875rem;
+      overflow: hidden;
+    }
+
+    .account-item {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      padding: 1.25rem;
+      border-bottom: 1px solid var(--color-border);
+      transition: background-color var(--transition-fast);
+    }
+    .account-item:last-child { border-bottom: none; }
+    .account-item:hover { background-color: var(--color-bg); }
+
+    .account-icon {
+      width: 3rem;
+      height: 3rem;
+      border-radius: 0.75rem;
+      background-color: var(--color-primary-light);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+    .account-info { flex: 1; min-width: 0; }
+    .account-name { font-size: 1rem; font-weight: 600; color: var(--color-text); }
+    .account-meta { font-size: 0.8125rem; color: var(--color-text-muted); margin-top: 0.25rem; }
+    .account-balance-col { text-align: right; flex-shrink: 0; }
+    .account-balance { font-size: 1.125rem; font-weight: 700; color: var(--color-text); }
+    .account-balance-label { font-size: 0.75rem; color: var(--color-text-muted); margin-bottom: 0.25rem; }
+    .account-actions { display: flex; gap: 0.5rem; margin-top: 0.75rem; flex-wrap: wrap; }
+
+    /* Modal overlay */
+    .modal-overlay {
+      position: fixed; inset: 0; background-color: rgb(0 0 0/0.5);
+      display: flex; align-items: center; justify-content: center;
+      padding: 1rem; z-index: var(--z-modal);
+    }
+    .modal-overlay.hidden { display: none; }
+    .modal { background-color: var(--color-surface); border-radius: 1rem; box-shadow: var(--shadow-xl); width: 100%; max-width: 28rem; }
+    .modal-header { display: flex; align-items: center; justify-content: space-between; padding: 1.25rem 1.5rem; border-bottom: 1px solid var(--color-border); }
+    .modal-header h2 { font-size: 1.125rem; font-weight: 600; color: var(--color-text); }
+    .modal-body { padding: 1.5rem; display: flex; flex-direction: column; gap: 1rem; }
+    .modal-footer { display: flex; gap: 0.75rem; justify-content: flex-end; padding: 1rem 1.5rem; border-top: 1px solid var(--color-border); }
+
+    .type-options { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; }
+    .type-option {
+      border: 2px solid var(--color-border);
+      border-radius: 0.75rem;
+      padding: 1rem;
+      cursor: pointer;
+      transition: all var(--transition-fast);
+      text-align: center;
+    }
+    .type-option:hover { border-color: var(--color-primary); background-color: var(--color-primary-light); }
+    .type-option.selected { border-color: var(--color-primary); background-color: var(--color-primary-light); }
+    .type-option-title { font-size: 0.9375rem; font-weight: 600; color: var(--color-text); margin-bottom: 0.25rem; }
+    .type-option-desc  { font-size: 0.75rem; color: var(--color-text-muted); }
+
+    .bottom-nav { display: none; position: fixed; bottom: 0; left: 0; right: 0; background-color: var(--color-surface); border-top: 1px solid var(--color-border); padding: 0.5rem 0; z-index: var(--z-sticky); }
+    .bottom-nav-items { display: flex; justify-content: space-around; }
+    .bottom-nav-item { display: flex; flex-direction: column; align-items: center; gap: 0.25rem; padding: 0.375rem 0.5rem; color: var(--color-text-muted); text-decoration: none; font-size: 0.625rem; font-weight: 500; }
+    .bottom-nav-item.active { color: var(--color-primary); }
+
+    .dark-toggle { position: fixed; top: 1rem; right: 1rem; z-index: 999; }
+
+    @media (max-width: 767px) {
+      .sidebar { display: none; }
+      .main-area { margin-left: 0; padding-bottom: 5rem; }
+      .bottom-nav { display: block; }
+      .account-item { flex-direction: column; align-items: flex-start; }
+      .account-balance-col { text-align: left; }
+    }
+  </style>
+</head>
+<body>
+
+<button class="btn btn-secondary btn-sm dark-toggle" onclick="document.documentElement.classList.toggle('dark')" aria-label="Alternar dark mode">Modo escuro</button>
+
+<!-- Modal abertura de conta -->
+<div class="modal-overlay hidden" id="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+  <div class="modal">
+    <div class="modal-header">
+      <h2 id="modal-title">Abrir nova conta</h2>
+      <button class="btn btn-ghost btn-sm" onclick="closeModal()" aria-label="Fechar modal">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <div class="modal-body">
+      <div class="input-group">
+        <label class="input-label">Tipo de conta</label>
+        <div class="type-options">
+          <div class="type-option selected" onclick="selectType(this)" tabindex="0" role="radio" aria-checked="true">
+            <div style="font-size:1.25rem;margin-bottom:0.375rem" aria-hidden="true">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="2" style="margin:0 auto"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>
+            </div>
+            <p class="type-option-title">Corrente</p>
+            <p class="type-option-desc">Para uso diario, sem limite de saques</p>
+          </div>
+          <div class="type-option" onclick="selectType(this)" tabindex="0" role="radio" aria-checked="false">
+            <div style="font-size:1.25rem;margin-bottom:0.375rem" aria-hidden="true">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="2" style="margin:0 auto"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+            </div>
+            <p class="type-option-title">Poupanca</p>
+            <p class="type-option-desc">Rendimento mensal automatico</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="input-group">
+        <label class="input-label" for="moeda">Moeda</label>
+        <select class="input" id="moeda">
+          <option value="BRL" selected>BRL — Real brasileiro</option>
+        </select>
+      </div>
+
+      <div class="alert alert-info" role="note">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink:0"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+        A nova conta sera criada com agencia 0001 e estara disponivel imediatamente.
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal()">Cancelar</button>
+      <button class="btn btn-primary" onclick="confirmAccount()">Confirmar abertura</button>
+    </div>
+  </div>
+</div>
+
+<div class="app-shell">
+  <!-- Sidebar -->
+  <aside class="sidebar" aria-label="Navegacao principal">
+    <a href="dashboard.html" class="sidebar-brand">
+      <div class="sidebar-brand-icon" aria-hidden="true"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg></div>
+      <span class="sidebar-brand-name">Nexus Bank</span>
+    </a>
+    <nav class="sidebar-nav">
+      <p class="sidebar-nav-label">Principal</p>
+      <a href="dashboard.html" class="nav-item"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>Inicio</a>
+      <a href="carteira.html" class="nav-item"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>Carteira</a>
+      <a href="transferencia.html" class="nav-item"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>Transferencias</a>
+      <a href="extrato.html" class="nav-item"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>Extrato</a>
+      <p class="sidebar-nav-label">Conta</p>
+      <a href="contas.html" class="nav-item active" aria-current="page"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M20 21a8 8 0 10-16 0"/></svg>Contas</a>
+      <a href="notificacoes.html" class="nav-item"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/></svg>Notificacoes</a>
+      <a href="perfil.html" class="nav-item"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>Perfil</a>
+    </nav>
+    <div class="sidebar-user">
+      <div class="avatar" style="width:2rem;height:2rem;font-size:0.75rem">LF</div>
+      <div>
+        <p class="sidebar-user-name">Lucas Ferreira</p>
+        <p class="sidebar-user-email">lucas@email.com</p>
+      </div>
+    </div>
+  </aside>
+
+  <div class="main-area">
+    <header class="topbar">
+      <h1 class="topbar-title">Minhas Contas</h1>
+      <button class="btn btn-primary btn-sm" onclick="openModal()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        Abrir nova conta
+      </button>
+    </header>
+
+    <main class="content" id="main-content">
+
+      <!-- Lista de contas -->
+      <section aria-labelledby="contas-heading">
+        <h2 id="contas-heading" style="font-size:0.875rem;font-weight:600;color:var(--color-text-muted);margin-bottom:0.875rem;text-transform:uppercase;letter-spacing:0.05em">2 contas ativas</h2>
+
+        <div class="account-list-card">
+          <!-- Conta Corrente -->
+          <article class="account-item">
+            <div class="account-icon" aria-hidden="true">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="2"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>
+            </div>
+            <div class="account-info">
+              <p class="account-name">Conta Corrente</p>
+              <p class="account-meta">Ag 0001 / Conta 123456-7</p>
+              <div class="account-actions">
+                <a href="extrato.html" class="btn btn-secondary btn-sm">Ver extrato</a>
+                <a href="transferencia.html" class="btn btn-primary btn-sm">Transferir</a>
+              </div>
+            </div>
+            <div class="account-balance-col">
+              <p class="account-balance-label">Saldo</p>
+              <p class="account-balance">R$ 12.450,00</p>
+              <span class="badge badge-active" style="margin-top:0.5rem">Ativa</span>
+            </div>
+          </article>
+
+          <!-- Conta Poupanca -->
+          <article class="account-item">
+            <div class="account-icon" aria-hidden="true">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+            </div>
+            <div class="account-info">
+              <p class="account-name">Conta Poupanca</p>
+              <p class="account-meta">Ag 0001 / Conta 234567-8</p>
+              <div class="account-actions">
+                <a href="extrato.html" class="btn btn-secondary btn-sm">Ver extrato</a>
+                <a href="transferencia.html" class="btn btn-primary btn-sm">Transferir</a>
+              </div>
+            </div>
+            <div class="account-balance-col">
+              <p class="account-balance-label">Saldo</p>
+              <p class="account-balance">R$ 3.200,00</p>
+              <span class="badge badge-active" style="margin-top:0.5rem">Ativa</span>
+            </div>
+          </article>
+        </div>
+      </section>
+
+      <!-- VARIANTE: Estado vazio -->
+      <section aria-label="Variante — Sem contas">
+        <h3 style="font-size:0.7rem;font-weight:700;color:var(--color-text-muted);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:0.75rem">Variante — Sem contas abertas</h3>
+        <div class="account-list-card">
+          <div class="empty-state">
+            <div class="empty-state-icon">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="2"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>
+            </div>
+            <p class="empty-state-title">Voce ainda nao tem contas abertas</p>
+            <p class="empty-state-desc">Abra sua primeira conta corrente ou poupanca e comece a usar todos os servicos do Nexus Bank gratuitamente.</p>
+            <button class="btn btn-primary" onclick="openModal()">Abrir minha primeira conta</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- VARIANTE: Loading -->
+      <section aria-label="Variante — Carregando">
+        <h3 style="font-size:0.7rem;font-weight:700;color:var(--color-text-muted);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:0.75rem">Variante — Carregando contas</h3>
+        <div class="account-list-card">
+          <div class="account-item">
+            <div class="skeleton" style="width:3rem;height:3rem;border-radius:0.75rem"></div>
+            <div style="flex:1;display:flex;flex-direction:column;gap:0.5rem">
+              <div class="skeleton skeleton-text" style="width:50%"></div>
+              <div class="skeleton skeleton-text" style="width:35%"></div>
+              <div style="display:flex;gap:0.5rem;margin-top:0.25rem">
+                <div class="skeleton" style="width:5rem;height:2rem;border-radius:0.5rem"></div>
+                <div class="skeleton" style="width:5rem;height:2rem;border-radius:0.5rem"></div>
+              </div>
+            </div>
+            <div style="text-align:right;display:flex;flex-direction:column;gap:0.5rem;align-items:flex-end">
+              <div class="skeleton skeleton-text" style="width:4rem"></div>
+              <div class="skeleton" style="width:6rem;height:1.5rem;border-radius:0.375rem"></div>
+            </div>
+          </div>
+          <div class="account-item">
+            <div class="skeleton" style="width:3rem;height:3rem;border-radius:0.75rem"></div>
+            <div style="flex:1;display:flex;flex-direction:column;gap:0.5rem">
+              <div class="skeleton skeleton-text" style="width:45%"></div>
+              <div class="skeleton skeleton-text" style="width:30%"></div>
+              <div style="display:flex;gap:0.5rem;margin-top:0.25rem">
+                <div class="skeleton" style="width:5rem;height:2rem;border-radius:0.5rem"></div>
+                <div class="skeleton" style="width:5rem;height:2rem;border-radius:0.5rem"></div>
+              </div>
+            </div>
+            <div style="text-align:right;display:flex;flex-direction:column;gap:0.5rem;align-items:flex-end">
+              <div class="skeleton skeleton-text" style="width:4rem"></div>
+              <div class="skeleton" style="width:6rem;height:1.5rem;border-radius:0.375rem"></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+    </main>
+  </div>
+
+  <nav class="bottom-nav" aria-label="Navegacao mobile">
+    <div class="bottom-nav-items">
+      <a href="dashboard.html" class="bottom-nav-item"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>Inicio</a>
+      <a href="carteira.html" class="bottom-nav-item"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>Carteira</a>
+      <a href="transferencia.html" class="bottom-nav-item"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>Pix</a>
+      <a href="extrato.html" class="bottom-nav-item"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/></svg>Extrato</a>
+      <a href="perfil.html" class="bottom-nav-item"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M20 21a8 8 0 10-16 0"/></svg>Perfil</a>
+    </div>
+  </nav>
+</div>
+
+<script>
+  function openModal() {
+    document.getElementById('modal-overlay').classList.remove('hidden');
+    document.getElementById('modal-overlay').querySelector('button').focus();
+  }
+  function closeModal() {
+    document.getElementById('modal-overlay').classList.add('hidden');
+  }
+  function selectType(el) {
+    document.querySelectorAll('.type-option').forEach(o => { o.classList.remove('selected'); o.setAttribute('aria-checked','false'); });
+    el.classList.add('selected');
+    el.setAttribute('aria-checked','true');
+  }
+  function confirmAccount() {
+    closeModal();
+    alert('Conta aberta com sucesso! Disponivel em instantes.');
+  }
+  document.getElementById('modal-overlay').addEventListener('click', function(e) {
+    if (e.target === this) closeModal();
+  });
+  document.querySelector('.dark-toggle').addEventListener('click', function() {
+    const isDark = document.documentElement.classList.contains('dark');
+    this.textContent = isDark ? 'Modo escuro' : 'Modo claro';
+  });
+</script>
+</body>
+</html>
