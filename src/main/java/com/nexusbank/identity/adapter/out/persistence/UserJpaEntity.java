@@ -38,13 +38,21 @@ class UserJpaEntity {
     @Column(name = "created_at", nullable = false, updatable = false)
     Instant createdAt;
 
+    @Column(name = "mfa_secret", length = 64)
+    String mfaSecret;
+
+    @Column(name = "mfa_enabled", nullable = false)
+    boolean mfaEnabled = false;
+
     protected UserJpaEntity() {}
 
     UserJpaEntity(UUID id, String email, String cpf, String name, String phone,
                   String passwordHash,
                   com.nexusbank.identity.domain.model.UserStatus status,
                   com.nexusbank.identity.domain.model.Role role,
-                  Instant createdAt) {
+                  Instant createdAt,
+                  String mfaSecret,
+                  boolean mfaEnabled) {
         this.id = id;
         this.email = email;
         this.cpf = cpf;
@@ -54,5 +62,7 @@ class UserJpaEntity {
         this.status = status;
         this.role = role;
         this.createdAt = createdAt;
+        this.mfaSecret = mfaSecret;
+        this.mfaEnabled = mfaEnabled;
     }
 }

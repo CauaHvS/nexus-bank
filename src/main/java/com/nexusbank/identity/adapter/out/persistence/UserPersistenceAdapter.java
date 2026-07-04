@@ -47,7 +47,9 @@ class UserPersistenceAdapter implements UserRepository {
                 user.getPasswordHash(),
                 user.getStatus(),
                 user.getRole(),
-                user.getCreatedAt()
+                user.getCreatedAt(),
+                user.getMfaSecret(),
+                user.isMfaEnabled()
         );
     }
 
@@ -61,7 +63,9 @@ class UserPersistenceAdapter implements UserRepository {
                 e.passwordHash,
                 e.status,
                 e.role,
-                e.createdAt
+                e.createdAt,
+                e.mfaSecret,
+                e.mfaEnabled
         );
     }
 }

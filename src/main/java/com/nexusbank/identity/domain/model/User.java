@@ -34,6 +34,8 @@ public class User {
     private UserStatus status;
     private final Role role;
     private final Instant createdAt;
+    private String mfaSecret;
+    private boolean mfaEnabled;
     private final List<Object> domainEvents = new ArrayList<>();
 
     private User(UserId id, Email email, Cpf cpf, String name, String phone,
@@ -47,10 +49,13 @@ public class User {
         this.status = UserStatus.ACTIVE;
         this.role = role;
         this.createdAt = createdAt;
+        this.mfaSecret = null;
+        this.mfaEnabled = false;
     }
 
     private User(UserId id, Email email, Cpf cpf, String name, String phone,
-                 String passwordHash, UserStatus status, Role role, Instant createdAt) {
+                 String passwordHash, UserStatus status, Role role, Instant createdAt,
+                 String mfaSecret, boolean mfaEnabled) {
         this.id = id;
         this.email = email;
         this.cpf = cpf;
@@ -60,6 +65,8 @@ public class User {
         this.status = status;
         this.role = role;
         this.createdAt = createdAt;
+        this.mfaSecret = mfaSecret;
+        this.mfaEnabled = mfaEnabled;
     }
 
     /**
@@ -87,8 +94,10 @@ public class User {
      * Não emite eventos de domínio — o estado já existia antes.
      */
     public static User reconstitute(UserId id, Email email, Cpf cpf, String name, String phone,
-                                    String passwordHash, UserStatus status, Role role, Instant createdAt) {
-        return new User(id, email, cpf, name, phone, passwordHash, status, role, createdAt);
+                                    String passwordHash, UserStatus status, Role role, Instant createdAt,
+                                    String mfaSecret, boolean mfaEnabled) {
+        return new User(id, email, cpf, name, phone, passwordHash, status, role, createdAt,
+                mfaSecret, mfaEnabled);
     }
 
     /**
@@ -112,6 +121,16 @@ public class User {
         return this.status == UserStatus.ACTIVE;
     }
 
+    public void enableMfa(String secret) {
+        this.mfaSecret = secret;
+        this.mfaEnabled = true;
+    }
+
+    public void disableMfa() {
+        this.mfaSecret = null;
+        this.mfaEnabled = false;
+    }
+
     /**
      * Retorna e limpa os eventos de domínio pendentes.
      * O caso de uso chama este método após persistência para publicar os eventos.
@@ -133,4 +152,6 @@ public class User {
     public UserStatus getStatus() { return status; }
     public Role getRole() { return role; }
     public Instant getCreatedAt() { return createdAt; }
+    public String getMfaSecret() { return mfaSecret; }
+    public boolean isMfaEnabled() { return mfaEnabled; }
 }

@@ -4,6 +4,8 @@ import com.nexusbank.identity.application.dto.AuthResult;
 import com.nexusbank.identity.application.dto.RegisterUserCommand;
 import com.nexusbank.identity.application.dto.UserView;
 import com.nexusbank.identity.application.usecase.AuthenticateUserUseCase;
+import com.nexusbank.identity.application.usecase.LogoutUseCase;
+import com.nexusbank.identity.application.usecase.RefreshTokenUseCase;
 import com.nexusbank.identity.application.usecase.RegisterUserUseCase;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Email;
@@ -18,11 +20,17 @@ public class AuthController {
 
     private final RegisterUserUseCase registerUser;
     private final AuthenticateUserUseCase authenticateUser;
+    private final RefreshTokenUseCase refreshToken;
+    private final LogoutUseCase logout;
 
     public AuthController(RegisterUserUseCase registerUser,
-                          AuthenticateUserUseCase authenticateUser) {
+                          AuthenticateUserUseCase authenticateUser,
+                          RefreshTokenUseCase refreshToken,
+                          LogoutUseCase logout) {
         this.registerUser = registerUser;
         this.authenticateUser = authenticateUser;
+        this.refreshToken = refreshToken;
+        this.logout = logout;
     }
 
     record RegisterRequest(
@@ -38,6 +46,10 @@ public class AuthController {
         @NotBlank String password
     ) {}
 
+    record RefreshRequest(@NotBlank String refreshToken) {}
+
+    record LogoutRequest(@NotBlank String refreshToken) {}
+
     @PostMapping("/register")
     @ResponseStatus(HttpStatus.CREATED)
     public UserView register(@Valid @RequestBody RegisterRequest req) {
@@ -49,5 +61,16 @@ public class AuthController {
     @PostMapping("/login")
     public AuthResult login(@Valid @RequestBody LoginRequest req) {
         return authenticateUser.execute(req.email(), req.password());
+    }
+
+    @PostMapping("/refresh")
+    public AuthResult refresh(@Valid @RequestBody RefreshRequest req) {
+        return refreshToken.execute(req.refreshToken());
+    }
+
+    @PostMapping("/logout")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void logout(@Valid @RequestBody LogoutRequest req) {
+        logout.execute(req.refreshToken());
     }
 }
