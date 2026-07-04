@@ -16,3 +16,7 @@ target/
 
 # Volumes do Docker criados localmente
 docker/volumes/
+
+# Arquivos internos de desenvolvimento — não subir ao repositório público
+CLAUDE.md
+ROADMAP.md
