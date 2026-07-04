@@ -1,30 +1,64 @@
-import axios from 'axios'
+import axios, { type AxiosInstance } from 'axios'
+import { authStore } from '@/store/authStore'
+import { authApi } from '@/features/auth/api/authApi'
 
-export const apiClient = axios.create({
+export const apiClient: AxiosInstance = axios.create({
   baseURL: '',
-  headers: {
-    'Content-Type': 'application/json',
-  },
+  headers: { 'Content-Type': 'application/json' },
   timeout: 10000,
 })
 
-// Interceptor de request: anexa token JWT quando disponível
 apiClient.interceptors.request.use((config) => {
-  const token = localStorage.getItem('access_token')
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`
-  }
+  const token = authStore.getAccessToken()
+  if (token) config.headers.Authorization = `Bearer ${token}`
   return config
 })
 
-// Interceptor de response: trata 401 (refresh será implementado na Fase 1)
+let isRefreshing = false
+let failedQueue: Array<{ resolve: (v: string) => void; reject: (e: unknown) => void }> = []
+
+function processQueue(error: unknown, token: string | null) {
+  failedQueue.forEach(p => error ? p.reject(error) : p.resolve(token!))
+  failedQueue = []
+}
+
 apiClient.interceptors.response.use(
-  (response) => response,
-  (error) => {
-    if (error.response?.status === 401) {
-      localStorage.removeItem('access_token')
-      localStorage.removeItem('refresh_token')
+  r => r,
+  async (error) => {
+    const original = error.config
+    if (error.response?.status !== 401 || original._retry) {
+      return Promise.reject(error)
     }
-    return Promise.reject(error)
+    if (isRefreshing) {
+      return new Promise((resolve, reject) => {
+        failedQueue.push({ resolve, reject })
+      }).then(token => {
+        original.headers.Authorization = `Bearer ${token}`
+        return apiClient(original)
+      })
+    }
+    original._retry = true
+    isRefreshing = true
+    const rt = authStore.getRefreshToken()
+    if (!rt) {
+      authStore.clear()
+      window.location.href = '/login'
+      return Promise.reject(error)
+    }
+    try {
+      const tokens = await authApi.refresh(rt)
+      const user = authStore.getUser()
+      if (user) authStore.save(tokens, user)
+      processQueue(null, tokens.accessToken)
+      original.headers.Authorization = `Bearer ${tokens.accessToken}`
+      return apiClient(original)
+    } catch (refreshError) {
+      processQueue(refreshError, null)
+      authStore.clear()
+      window.location.href = '/login'
+      return Promise.reject(refreshError)
+    } finally {
+      isRefreshing = false
+    }
   },
 )
