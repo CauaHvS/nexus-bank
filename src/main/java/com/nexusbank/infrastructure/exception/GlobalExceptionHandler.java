@@ -1,5 +1,6 @@
 package com.nexusbank.infrastructure.exception;
 
+import com.nexusbank.corebanking.domain.exception.*;
 import com.nexusbank.identity.domain.exception.*;
 import org.springframework.http.*;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -42,6 +43,30 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
         ProblemDetail pd = ProblemDetail.forStatusAndDetail(HttpStatus.NOT_FOUND, ex.getMessage());
         pd.setType(URI.create("/errors/not-found"));
         pd.setTitle("Não encontrado");
+        return pd;
+    }
+
+    @ExceptionHandler(AccountNotFoundException.class)
+    ProblemDetail handleAccountNotFound(AccountNotFoundException ex) {
+        ProblemDetail pd = ProblemDetail.forStatusAndDetail(HttpStatus.NOT_FOUND, ex.getMessage());
+        pd.setType(URI.create("/errors/not-found"));
+        pd.setTitle("Conta não encontrada");
+        return pd;
+    }
+
+    @ExceptionHandler(AccountAlreadyExistsException.class)
+    ProblemDetail handleAccountConflict(AccountAlreadyExistsException ex) {
+        ProblemDetail pd = ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, ex.getMessage());
+        pd.setType(URI.create("/errors/account-already-exists"));
+        pd.setTitle("Conta já existe");
+        return pd;
+    }
+
+    @ExceptionHandler(InsufficientFundsException.class)
+    ProblemDetail handleInsufficientFunds(InsufficientFundsException ex) {
+        ProblemDetail pd = ProblemDetail.forStatusAndDetail(HttpStatus.UNPROCESSABLE_ENTITY, ex.getMessage());
+        pd.setType(URI.create("/errors/insufficient-funds"));
+        pd.setTitle("Saldo insuficiente");
         return pd;
     }
 
