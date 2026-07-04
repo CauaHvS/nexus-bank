@@ -1,0 +1,313 @@
+openapi: 3.1.0
+info:
+  title: Nexus Bank - Identity API
+  description: |
+    Endpoints de autenticação do módulo Identity.
+    Gerencia registro de usuários, login, renovação de tokens e logout.
+    Erros seguem RFC 9457 (ProblemDetail).
+  version: 1.0.0
+  contact:
+    name: Nexus Bank Engineering
+
+servers:
+  - url: http://localhost:8080
+    description: Desenvolvimento local
+
+tags:
+  - name: auth
+    description: Autenticação e gerenciamento de sessão
+
+paths:
+  /auth/register:
+    post:
+      tags: [auth]
+      operationId: registerUser
+      summary: Registra um novo usuário
+      description: |
+        Cria uma conta de cliente. O e-mail deve ser único no sistema.
+        O CPF é validado pelo algoritmo dos dígitos verificadores.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegisterRequest'
+            example:
+              name: "Maria Silva"
+              email: "maria.silva@email.com"
+              cpf: "123.456.789-09"
+              phone: "+5511999999999"
+              password: "Senh@Segura123"
+      responses:
+        '201':
+          description: Usuário criado com sucesso
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserView'
+              example:
+                userId: "550e8400-e29b-41d4-a716-446655440000"
+                email: "maria.silva@email.com"
+                name: "Maria Silva"
+        '409':
+          description: E-mail já cadastrado
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetail'
+              example:
+                type: "https://nexusbank.com/errors/email-already-registered"
+                title: "E-mail já cadastrado"
+                status: 409
+                detail: "E-mail já cadastrado: maria.silva@email.com"
+                instance: "/auth/register"
+        '422':
+          description: Dados inválidos (validação de campos)
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetail'
+              example:
+                type: "https://nexusbank.com/errors/validation-error"
+                title: "Erro de validação"
+                status: 422
+                detail: "CPF inválido: 000.000.000-00"
+                instance: "/auth/register"
+
+  /auth/login:
+    post:
+      tags: [auth]
+      operationId: login
+      summary: Autentica um usuário
+      description: |
+        Valida credenciais e retorna um par de tokens JWT.
+        O access token expira em 15 minutos.
+        O refresh token expira em 7 dias e é rotativo.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+            example:
+              email: "maria.silva@email.com"
+              password: "Senh@Segura123"
+      responses:
+        '200':
+          description: Autenticação bem-sucedida
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+              example:
+                accessToken: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+                refreshToken: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+                expiresIn: 900
+                tokenType: "Bearer"
+        '401':
+          description: Credenciais inválidas
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetail'
+              example:
+                type: "https://nexusbank.com/errors/invalid-credentials"
+                title: "Credenciais inválidas"
+                status: 401
+                detail: "Credenciais inválidas."
+                instance: "/auth/login"
+
+  /auth/refresh:
+    post:
+      tags: [auth]
+      operationId: refreshToken
+      summary: Renova o access token
+      description: |
+        Emite um novo par de tokens usando o refresh token vigente.
+        O refresh token anterior é invalidado imediatamente (rotação).
+        Um refresh token usado mais de uma vez indica possível replay attack e
+        invalida todos os tokens do usuário.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RefreshRequest'
+            example:
+              refreshToken: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+      responses:
+        '200':
+          description: Tokens renovados com sucesso
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+              example:
+                accessToken: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+                refreshToken: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+                expiresIn: 900
+                tokenType: "Bearer"
+        '401':
+          description: Refresh token inválido ou expirado
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetail'
+              example:
+                type: "https://nexusbank.com/errors/invalid-token"
+                title: "Token inválido ou expirado"
+                status: 401
+                detail: "O refresh token fornecido é inválido ou já expirou."
+                instance: "/auth/refresh"
+
+  /auth/logout:
+    post:
+      tags: [auth]
+      operationId: logout
+      summary: Encerra a sessão do usuário
+      description: |
+        Revoga o refresh token associado à sessão atual.
+        O access token continua válido até seu TTL natural (máximo 15 minutos).
+      security:
+        - bearerAuth: []
+      responses:
+        '204':
+          description: Logout realizado com sucesso
+        '401':
+          description: Token ausente ou inválido
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetail'
+              example:
+                type: "https://nexusbank.com/errors/unauthorized"
+                title: "Não autorizado"
+                status: 401
+                detail: "Token de acesso ausente ou inválido."
+                instance: "/auth/logout"
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    RegisterRequest:
+      type: object
+      required: [name, email, cpf, phone, password]
+      properties:
+        name:
+          type: string
+          minLength: 2
+          maxLength: 150
+          description: Nome completo do usuário
+          example: "Maria Silva"
+        email:
+          type: string
+          format: email
+          maxLength: 254
+          description: E-mail único no sistema
+          example: "maria.silva@email.com"
+        cpf:
+          type: string
+          description: CPF com ou sem formatação; validado pelo algoritmo dos dígitos verificadores
+          example: "123.456.789-09"
+        phone:
+          type: string
+          maxLength: 20
+          description: Telefone com DDD e código do país
+          example: "+5511999999999"
+        password:
+          type: string
+          format: password
+          minLength: 8
+          maxLength: 128
+          description: Senha em texto plano; armazenada apenas como hash BCrypt
+          example: "Senh@Segura123"
+
+    LoginRequest:
+      type: object
+      required: [email, password]
+      properties:
+        email:
+          type: string
+          format: email
+          example: "maria.silva@email.com"
+        password:
+          type: string
+          format: password
+          example: "Senh@Segura123"
+
+    RefreshRequest:
+      type: object
+      required: [refreshToken]
+      properties:
+        refreshToken:
+          type: string
+          description: Refresh token JWT emitido no login ou na última renovação
+
+    AuthResponse:
+      type: object
+      required: [accessToken, refreshToken, expiresIn, tokenType]
+      properties:
+        accessToken:
+          type: string
+          description: JWT de acesso; válido por expiresIn segundos
+        refreshToken:
+          type: string
+          description: JWT de renovação; válido por 7 dias; rotativo
+        expiresIn:
+          type: integer
+          format: int64
+          description: Tempo de expiração do access token em segundos
+          example: 900
+        tokenType:
+          type: string
+          enum: [Bearer]
+          example: "Bearer"
+
+    UserView:
+      type: object
+      required: [userId, email, name]
+      properties:
+        userId:
+          type: string
+          format: uuid
+          description: Identificador único do usuário
+          example: "550e8400-e29b-41d4-a716-446655440000"
+        email:
+          type: string
+          format: email
+          example: "maria.silva@email.com"
+        name:
+          type: string
+          example: "Maria Silva"
+
+    ProblemDetail:
+      type: object
+      description: Erro no formato RFC 9457
+      properties:
+        type:
+          type: string
+          format: uri
+          description: URI que identifica o tipo do problema
+          example: "https://nexusbank.com/errors/email-already-registered"
+        title:
+          type: string
+          description: Descrição breve do problema
+          example: "E-mail já cadastrado"
+        status:
+          type: integer
+          description: Código HTTP do erro
+          example: 409
+        detail:
+          type: string
+          description: Explicação legível para o usuário
+          example: "E-mail já cadastrado: maria.silva@email.com"
+        instance:
+          type: string
+          format: uri
+          description: URI da requisição que gerou o problema
+          example: "/auth/register"
