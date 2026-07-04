@@ -2,6 +2,7 @@ package com.nexusbank.infrastructure.exception;
 
 import com.nexusbank.corebanking.domain.exception.*;
 import com.nexusbank.identity.domain.exception.*;
+import com.nexusbank.payments.domain.exception.*;
 import org.springframework.http.*;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.*;
@@ -67,6 +68,22 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
         ProblemDetail pd = ProblemDetail.forStatusAndDetail(HttpStatus.UNPROCESSABLE_ENTITY, ex.getMessage());
         pd.setType(URI.create("/errors/insufficient-funds"));
         pd.setTitle("Saldo insuficiente");
+        return pd;
+    }
+
+    @ExceptionHandler(DuplicateTransferException.class)
+    ProblemDetail handleDuplicateTransfer(DuplicateTransferException ex) {
+        ProblemDetail pd = ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, ex.getMessage());
+        pd.setType(URI.create("/errors/duplicate-transfer"));
+        pd.setTitle("Transferência duplicada");
+        return pd;
+    }
+
+    @ExceptionHandler(TransferNotFoundException.class)
+    ProblemDetail handleTransferNotFound(TransferNotFoundException ex) {
+        ProblemDetail pd = ProblemDetail.forStatusAndDetail(HttpStatus.NOT_FOUND, ex.getMessage());
+        pd.setType(URI.create("/errors/not-found"));
+        pd.setTitle("Transferência não encontrada");
         return pd;
     }
 
