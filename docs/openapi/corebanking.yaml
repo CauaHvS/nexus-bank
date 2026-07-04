@@ -1,0 +1,492 @@
+openapi: 3.1.0
+info:
+  title: Nexus Bank - Core Banking API
+  description: |
+    Endpoints do módulo Core Banking.
+    Gerencia contas bancárias, saldo e extrato.
+    Todos os endpoints requerem autenticação via Bearer JWT.
+    Erros seguem RFC 9457 (ProblemDetail).
+  version: 1.0.0
+  contact:
+    name: Nexus Bank Engineering
+
+servers:
+  - url: http://localhost:8080
+    description: Desenvolvimento local
+
+security:
+  - bearerAuth: []
+
+tags:
+  - name: accounts
+    description: Gerenciamento de contas bancárias
+
+paths:
+  /accounts:
+    post:
+      tags: [accounts]
+      operationId: openAccount
+      summary: Abre uma nova conta bancária
+      description: |
+        Cria uma conta do tipo CHECKING ou SAVINGS para o cliente informado.
+        Cada cliente pode ter no máximo uma conta de cada tipo.
+        O saldo inicial é sempre zero.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OpenAccountRequest'
+            example:
+              customerId: "550e8400-e29b-41d4-a716-446655440000"
+              type: "CHECKING"
+              currency: "BRL"
+      responses:
+        '201':
+          description: Conta criada com sucesso
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AccountView'
+              example:
+                accountId: "7c9e6679-7425-40de-944b-e07fc1f90ae7"
+                accountNumber: "00012345"
+                agency: "0001"
+                type: "CHECKING"
+                currency: "BRL"
+                balance: 0.00
+                status: "ACTIVE"
+        '401':
+          description: Token ausente ou inválido
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetail'
+              example:
+                type: "https://nexusbank.com/errors/unauthorized"
+                title: "Não autorizado"
+                status: 401
+                detail: "Token de acesso ausente ou inválido."
+                instance: "/accounts"
+        '409':
+          description: Conta já existe para esse cliente e tipo
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetail'
+              example:
+                type: "https://nexusbank.com/errors/account-already-exists"
+                title: "Conta já existe"
+                status: 409
+                detail: "Cliente já possui uma conta do tipo CHECKING."
+                instance: "/accounts"
+        '422':
+          description: Dados inválidos
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetail'
+              example:
+                type: "https://nexusbank.com/errors/validation-error"
+                title: "Erro de validação"
+                status: 422
+                detail: "O campo 'type' deve ser CHECKING ou SAVINGS."
+                instance: "/accounts"
+
+    get:
+      tags: [accounts]
+      operationId: listMyAccounts
+      summary: Lista as contas do usuário autenticado
+      description: |
+        Retorna todas as contas vinculadas ao customerId extraído do JWT.
+      responses:
+        '200':
+          description: Lista de contas do usuário
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/AccountView'
+              example:
+                - accountId: "7c9e6679-7425-40de-944b-e07fc1f90ae7"
+                  accountNumber: "00012345"
+                  agency: "0001"
+                  type: "CHECKING"
+                  currency: "BRL"
+                  balance: 1500.00
+                  status: "ACTIVE"
+                - accountId: "3fa85f64-5717-4562-b3fc-2c963f66afa6"
+                  accountNumber: "00012346"
+                  agency: "0001"
+                  type: "SAVINGS"
+                  currency: "BRL"
+                  balance: 500.00
+                  status: "ACTIVE"
+        '401':
+          description: Token ausente ou inválido
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetail'
+
+  /accounts/{accountId}:
+    get:
+      tags: [accounts]
+      operationId: getAccount
+      summary: Consulta uma conta pelo ID
+      description: |
+        Retorna os dados completos de uma conta.
+        O usuário autenticado deve ser o titular da conta.
+      parameters:
+        - $ref: '#/components/parameters/accountIdParam'
+      responses:
+        '200':
+          description: Dados da conta
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AccountView'
+              example:
+                accountId: "7c9e6679-7425-40de-944b-e07fc1f90ae7"
+                accountNumber: "00012345"
+                agency: "0001"
+                type: "CHECKING"
+                currency: "BRL"
+                balance: 1500.00
+                status: "ACTIVE"
+        '401':
+          description: Token ausente ou inválido
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetail'
+        '404':
+          description: Conta não encontrada
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetail'
+              example:
+                type: "https://nexusbank.com/errors/account-not-found"
+                title: "Conta não encontrada"
+                status: 404
+                detail: "Conta não encontrada: 7c9e6679-7425-40de-944b-e07fc1f90ae7"
+                instance: "/accounts/7c9e6679-7425-40de-944b-e07fc1f90ae7"
+
+  /accounts/{accountId}/balance:
+    get:
+      tags: [accounts]
+      operationId: getBalance
+      summary: Consulta o saldo de uma conta
+      description: |
+        Retorna o saldo atual. Pode ser servido de cache Redis com TTL curto.
+        O timestamp updatedAt reflete o momento da última operação que alterou o saldo.
+      parameters:
+        - $ref: '#/components/parameters/accountIdParam'
+      responses:
+        '200':
+          description: Saldo atual da conta
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BalanceView'
+              example:
+                accountId: "7c9e6679-7425-40de-944b-e07fc1f90ae7"
+                balance: 1500.00
+                currency: "BRL"
+                updatedAt: "2026-07-04T10:30:00Z"
+        '401':
+          description: Token ausente ou inválido
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetail'
+        '404':
+          description: Conta não encontrada
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetail'
+              example:
+                type: "https://nexusbank.com/errors/account-not-found"
+                title: "Conta não encontrada"
+                status: 404
+                detail: "Conta não encontrada: 7c9e6679-7425-40de-944b-e07fc1f90ae7"
+                instance: "/accounts/7c9e6679-7425-40de-944b-e07fc1f90ae7/balance"
+
+  /accounts/{accountId}/statement:
+    get:
+      tags: [accounts]
+      operationId: getStatement
+      summary: Consulta o extrato de uma conta
+      description: |
+        Retorna as entradas do extrato em ordem cronológica decrescente (mais recente primeiro).
+        Suporta paginação e filtro por período.
+        Leitura via read model (AccountEntry) — não acessa o agregado Account diretamente.
+      parameters:
+        - $ref: '#/components/parameters/accountIdParam'
+        - name: page
+          in: query
+          description: Número da página (base 0)
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+          example: 0
+        - name: size
+          in: query
+          description: Quantidade de itens por página
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+          example: 20
+        - name: startDate
+          in: query
+          description: Data de início do filtro (inclusivo), formato ISO 8601 date
+          schema:
+            type: string
+            format: date
+          example: "2026-07-01"
+        - name: endDate
+          in: query
+          description: Data de fim do filtro (inclusivo), formato ISO 8601 date
+          schema:
+            type: string
+            format: date
+          example: "2026-07-31"
+      responses:
+        '200':
+          description: Extrato paginado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StatementPage'
+              example:
+                content:
+                  - entryId: "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+                    type: "CREDIT"
+                    amount: 500.00
+                    description: "Transferência recebida"
+                    occurredAt: "2026-07-04T09:15:00Z"
+                    balanceAfter: 1500.00
+                  - entryId: "b2c3d4e5-f6a7-8901-bcde-f01234567891"
+                    type: "DEBIT"
+                    amount: 100.00
+                    description: "Pagamento de boleto"
+                    occurredAt: "2026-07-03T14:22:00Z"
+                    balanceAfter: 1000.00
+                page: 0
+                size: 20
+                totalElements: 2
+                totalPages: 1
+        '401':
+          description: Token ausente ou inválido
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetail'
+        '404':
+          description: Conta não encontrada
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetail'
+              example:
+                type: "https://nexusbank.com/errors/account-not-found"
+                title: "Conta não encontrada"
+                status: 404
+                detail: "Conta não encontrada: 7c9e6679-7425-40de-944b-e07fc1f90ae7"
+                instance: "/accounts/7c9e6679-7425-40de-944b-e07fc1f90ae7/statement"
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  parameters:
+    accountIdParam:
+      name: accountId
+      in: path
+      required: true
+      description: Identificador UUID da conta
+      schema:
+        type: string
+        format: uuid
+      example: "7c9e6679-7425-40de-944b-e07fc1f90ae7"
+
+  schemas:
+    OpenAccountRequest:
+      type: object
+      required: [customerId, type, currency]
+      properties:
+        customerId:
+          type: string
+          format: uuid
+          description: Identificador do cliente (deve corresponder ao usuário autenticado ou ter permissão de operador)
+          example: "550e8400-e29b-41d4-a716-446655440000"
+        type:
+          type: string
+          enum: [CHECKING, SAVINGS]
+          description: Tipo de conta — corrente (CHECKING) ou poupança (SAVINGS)
+          example: "CHECKING"
+        currency:
+          type: string
+          enum: [BRL, USD, EUR]
+          description: Moeda da conta
+          example: "BRL"
+
+    AccountView:
+      type: object
+      required: [accountId, accountNumber, agency, type, currency, balance, status]
+      properties:
+        accountId:
+          type: string
+          format: uuid
+          description: Identificador único da conta
+          example: "7c9e6679-7425-40de-944b-e07fc1f90ae7"
+        accountNumber:
+          type: string
+          description: Número da conta (sem dígito verificador nesta versão)
+          example: "00012345"
+        agency:
+          type: string
+          description: Código da agência
+          example: "0001"
+        type:
+          type: string
+          enum: [CHECKING, SAVINGS]
+          description: Tipo da conta
+          example: "CHECKING"
+        currency:
+          type: string
+          enum: [BRL, USD, EUR]
+          description: Moeda da conta
+          example: "BRL"
+        balance:
+          type: number
+          format: double
+          description: Saldo atual com precisão de 2 casas decimais
+          example: 1500.00
+        status:
+          type: string
+          enum: [ACTIVE, INACTIVE, BLOCKED]
+          description: Status atual da conta
+          example: "ACTIVE"
+
+    BalanceView:
+      type: object
+      required: [accountId, balance, currency, updatedAt]
+      properties:
+        accountId:
+          type: string
+          format: uuid
+          description: Identificador único da conta
+          example: "7c9e6679-7425-40de-944b-e07fc1f90ae7"
+        balance:
+          type: number
+          format: double
+          description: Saldo atual com precisão de 2 casas decimais
+          example: 1500.00
+        currency:
+          type: string
+          enum: [BRL, USD, EUR]
+          description: Moeda da conta
+          example: "BRL"
+        updatedAt:
+          type: string
+          format: date-time
+          description: Timestamp da última atualização do saldo (ISO 8601 UTC)
+          example: "2026-07-04T10:30:00Z"
+
+    StatementEntry:
+      type: object
+      required: [entryId, type, amount, description, occurredAt, balanceAfter]
+      properties:
+        entryId:
+          type: string
+          format: uuid
+          description: Identificador único da entrada no extrato
+          example: "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+        type:
+          type: string
+          enum: [DEBIT, CREDIT]
+          description: Tipo da movimentação
+          example: "CREDIT"
+        amount:
+          type: number
+          format: double
+          description: Valor absoluto da movimentação (sempre positivo)
+          example: 500.00
+        description:
+          type: string
+          description: Descrição legível da movimentação
+          example: "Transferência recebida"
+        occurredAt:
+          type: string
+          format: date-time
+          description: Timestamp em que a movimentação ocorreu (ISO 8601 UTC)
+          example: "2026-07-04T09:15:00Z"
+        balanceAfter:
+          type: number
+          format: double
+          description: Saldo da conta após esta movimentação
+          example: 1500.00
+
+    StatementPage:
+      type: object
+      required: [content, page, size, totalElements, totalPages]
+      properties:
+        content:
+          type: array
+          items:
+            $ref: '#/components/schemas/StatementEntry'
+          description: Entradas do extrato na página atual
+        page:
+          type: integer
+          description: Número da página atual (base 0)
+          example: 0
+        size:
+          type: integer
+          description: Tamanho da página
+          example: 20
+        totalElements:
+          type: integer
+          format: int64
+          description: Total de entradas no período filtrado
+          example: 42
+        totalPages:
+          type: integer
+          description: Total de páginas
+          example: 3
+
+    ProblemDetail:
+      type: object
+      description: Erro no formato RFC 9457
+      properties:
+        type:
+          type: string
+          format: uri
+          description: URI que identifica o tipo do problema
+          example: "https://nexusbank.com/errors/account-not-found"
+        title:
+          type: string
+          description: Descrição breve do problema
+          example: "Conta não encontrada"
+        status:
+          type: integer
+          description: Código HTTP do erro
+          example: 404
+        detail:
+          type: string
+          description: Explicação legível para o usuário
+          example: "Conta não encontrada: 7c9e6679-7425-40de-944b-e07fc1f90ae7"
+        instance:
+          type: string
+          format: uri
+          description: URI da requisição que gerou o problema
+          example: "/accounts/7c9e6679-7425-40de-944b-e07fc1f90ae7"
