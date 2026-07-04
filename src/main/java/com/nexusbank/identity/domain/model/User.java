@@ -49,6 +49,19 @@ public class User {
         this.createdAt = createdAt;
     }
 
+    private User(UserId id, Email email, Cpf cpf, String name, String phone,
+                 String passwordHash, UserStatus status, Role role, Instant createdAt) {
+        this.id = id;
+        this.email = email;
+        this.cpf = cpf;
+        this.name = name;
+        this.phone = phone;
+        this.passwordHash = passwordHash;
+        this.status = status;
+        this.role = role;
+        this.createdAt = createdAt;
+    }
+
     /**
      * Factory method para o caso de uso de registro.
      * Emite o evento UserRegistered para ser publicado após persistência.
@@ -67,6 +80,15 @@ public class User {
         );
         user.domainEvents.add(new UserRegistered(user.id, user.email, user.name, user.createdAt));
         return user;
+    }
+
+    /**
+     * Factory para reconstituição a partir de persistência.
+     * Não emite eventos de domínio — o estado já existia antes.
+     */
+    public static User reconstitute(UserId id, Email email, Cpf cpf, String name, String phone,
+                                    String passwordHash, UserStatus status, Role role, Instant createdAt) {
+        return new User(id, email, cpf, name, phone, passwordHash, status, role, createdAt);
     }
 
     /**
