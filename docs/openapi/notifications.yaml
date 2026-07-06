@@ -1,0 +1,231 @@
+openapi: "3.1.0"
+
+info:
+  title: Nexus Bank — Notifications API
+  version: "1.0.0"
+  description: |
+    Endpoints do módulo Notifications. Exige autenticação JWT (Bearer token).
+    O userId é extraído do token — nenhum parâmetro de userId é aceito na URL.
+
+servers:
+  - url: http://localhost:8080
+    description: Desenvolvimento local
+
+security:
+  - bearerAuth: []
+
+paths:
+
+  /notifications:
+    get:
+      summary: Lista notificações do usuário autenticado
+      operationId: listNotifications
+      tags: [notifications]
+      parameters:
+        - name: page
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+          description: Número da página (base 0)
+        - name: size
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 50
+            default: 20
+          description: Itens por página
+      responses:
+        "200":
+          description: Lista de notificações com paginação e contador de não lidas
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NotificationListResponse"
+              example:
+                content:
+                  - id: "3fa85f64-5717-4562-b3fc-2c963f66afa6"
+                    userId: "user-uuid"
+                    type: TRANSFER_COMPLETED
+                    title: "Transferência concluída"
+                    body: "Sua transferência de R$ 150,00 foi concluída com sucesso."
+                    read: false
+                    createdAt: "2026-07-05T14:23:00Z"
+                page: 0
+                size: 20
+                totalElements: 1
+                totalPages: 1
+                unreadCount: 1
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /notifications/{id}/read:
+    patch:
+      summary: Marca uma notificação como lida
+      operationId: markAsRead
+      tags: [notifications]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: UUID da notificação
+      responses:
+        "200":
+          description: Notificação marcada como lida
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NotificationResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /notifications/read-all:
+    patch:
+      summary: Marca todas as notificações do usuário como lidas
+      operationId: markAllAsRead
+      tags: [notifications]
+      responses:
+        "204":
+          description: Todas as notificações marcadas como lidas
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /notifications/unread-count:
+    get:
+      summary: Retorna apenas o contador de notificações não lidas
+      operationId: getUnreadCount
+      tags: [notifications]
+      responses:
+        "200":
+          description: Contador de não lidas (usado para badge no frontend)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UnreadCountResponse"
+              example:
+                unreadCount: 3
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+components:
+
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+
+    NotificationResponse:
+      type: object
+      required: [id, userId, type, title, body, read, createdAt]
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Identificador único da notificação
+        userId:
+          type: string
+          description: UUID do usuário dono da notificação
+        type:
+          $ref: "#/components/schemas/NotificationType"
+        title:
+          type: string
+          example: "Transferência concluída"
+        body:
+          type: string
+          example: "Sua transferência de R$ 150,00 foi concluída com sucesso."
+        read:
+          type: boolean
+          description: true se o usuário já visualizou a notificação
+        createdAt:
+          type: string
+          format: date-time
+          description: Instante de criação em UTC (ISO 8601)
+
+    NotificationListResponse:
+      type: object
+      required: [content, page, size, totalElements, totalPages, unreadCount]
+      properties:
+        content:
+          type: array
+          items:
+            $ref: "#/components/schemas/NotificationResponse"
+        page:
+          type: integer
+          description: Página atual (base 0)
+        size:
+          type: integer
+          description: Tamanho da página solicitada
+        totalElements:
+          type: integer
+          format: int64
+          description: Total de notificações do usuário
+        totalPages:
+          type: integer
+          description: Total de páginas disponíveis
+        unreadCount:
+          type: integer
+          format: int64
+          description: Total de notificações não lidas do usuário
+
+    UnreadCountResponse:
+      type: object
+      required: [unreadCount]
+      properties:
+        unreadCount:
+          type: integer
+          format: int64
+          description: Quantidade de notificações não lidas
+
+    NotificationType:
+      type: string
+      enum:
+        - TRANSFER_COMPLETED
+        - TRANSFER_FAILED
+        - ACCOUNT_OPENED
+      description: |
+        Tipo do evento que originou a notificação.
+        - TRANSFER_COMPLETED: transferência concluída com sucesso
+        - TRANSFER_FAILED: transferência falhou (saldo insuficiente, conta inativa etc.)
+        - ACCOUNT_OPENED: nova conta corrente/poupança aberta
+
+    ProblemDetail:
+      type: object
+      description: Resposta de erro no formato RFC 9457
+      properties:
+        type:
+          type: string
+          format: uri
+        title:
+          type: string
+        status:
+          type: integer
+        detail:
+          type: string
+        instance:
+          type: string
+
+  responses:
+    Unauthorized:
+      description: Token ausente ou inválido
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/ProblemDetail"
+    NotFound:
+      description: Notificação não encontrada ou não pertence ao usuário autenticado
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/ProblemDetail"
