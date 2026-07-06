@@ -1,0 +1,405 @@
+openapi: 3.1.0
+info:
+  title: Nexus Bank - Payments API
+  description: |
+    Endpoints do modulo Payments.
+    Gerencia transferencias entre contas (INTERNAL, PIX, TED) com suporte a idempotencia.
+    Toda transferencia exige o header `Idempotency-Key` para garantir seguranca em retentativas.
+    Todos os endpoints requerem autenticacao via Bearer JWT.
+    Erros seguem RFC 9457 (ProblemDetail).
+
+    ## Fluxo de transferencia
+
+    1. Frontend lista as contas do usuario via `GET /accounts` (corebanking).
+    2. Usuario seleciona conta de origem, informa destino e valor.
+    3. Frontend gera um UUID aleatorio como `Idempotency-Key` e chama `POST /transfers`.
+    4. Backend verifica ownership da conta de origem, debita e publica evento via Outbox.
+    5. Listener credita a conta de destino de forma assíncrona (Saga).
+    6. Frontend consulta o status via `GET /transfers/{id}` ate COMPLETED ou FAILED.
+
+    ## Idempotencia
+
+    O header `Idempotency-Key` e obrigatorio. Requisicoes com a mesma chave retornam
+    o resultado da primeira execucao. Se a primeira execucao ainda esta PENDING,
+    a API retorna 409 Conflict com `duplicate-transfer` para evitar processamento
+    duplicado concorrente.
+  version: 1.0.0
+  contact:
+    name: Nexus Bank Engineering
+
+servers:
+  - url: http://localhost:8080
+    description: Desenvolvimento local
+
+security:
+  - bearerAuth: []
+
+tags:
+  - name: transfers
+    description: Transferencias entre contas
+
+paths:
+  /transfers:
+    post:
+      tags: [transfers]
+      operationId: initiateTransfer
+      summary: Inicia uma transferencia
+      description: |
+        Inicia uma transferencia da conta de origem para a conta de destino.
+
+        Regras:
+        - O `sourceAccountId` deve pertencer ao usuario autenticado (verificado no backend).
+        - O saldo da conta de origem deve ser suficiente.
+        - `Idempotency-Key` deve ser um UUID gerado pelo cliente; requisicoes identicas
+          com a mesma chave retornam o resultado anterior sem processar novamente.
+        - Transferencias INTERNAL sao entre contas do proprio banco.
+        - PIX e TED sao para contas externas (simuladas nesta versao).
+      parameters:
+        - $ref: '#/components/parameters/idempotencyKeyHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TransferRequest'
+            example:
+              sourceAccountId: "7c9e6679-7425-40de-944b-e07fc1f90ae7"
+              targetAccountId: "3fa85f64-5717-4562-b3fc-2c963f66afa6"
+              amount: 250.00
+              currency: "BRL"
+              paymentType: "INTERNAL"
+              description: "Pagamento aluguel"
+      responses:
+        '201':
+          description: Transferencia iniciada com sucesso (PENDING ou COMPLETED)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TransferResponse'
+              example:
+                transferId: "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+                sourceAccountId: "7c9e6679-7425-40de-944b-e07fc1f90ae7"
+                targetAccountId: "3fa85f64-5717-4562-b3fc-2c963f66afa6"
+                amount: 250.00
+                currency: "BRL"
+                paymentType: "INTERNAL"
+                status: "PENDING"
+                idempotencyKey: "550e8400-e29b-41d4-a716-446655440000"
+                createdAt: "2026-07-05T10:00:00Z"
+                completedAt: null
+                failureReason: null
+        '400':
+          description: Requisicao invalida — campos obrigatorios ausentes ou formato invalido
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetail'
+              example:
+                type: "https://nexusbank.com/errors/validation-error"
+                title: "Erro de validacao"
+                status: 400
+                detail: "O campo 'amount' deve ser maior que zero."
+                instance: "/transfers"
+        '401':
+          description: Token ausente ou invalido
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetail'
+              example:
+                type: "https://nexusbank.com/errors/unauthorized"
+                title: "Nao autorizado"
+                status: 401
+                detail: "Token de acesso ausente ou invalido."
+                instance: "/transfers"
+        '403':
+          description: Conta de origem nao pertence ao usuario autenticado
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetail'
+              example:
+                type: "https://nexusbank.com/errors/account-access-denied"
+                title: "Acesso negado"
+                status: 403
+                detail: "A conta de origem nao pertence ao usuario autenticado."
+                instance: "/transfers"
+        '404':
+          description: Conta de origem ou destino nao encontrada
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetail'
+              example:
+                type: "https://nexusbank.com/errors/account-not-found"
+                title: "Conta nao encontrada"
+                status: 404
+                detail: "Conta nao encontrada: 3fa85f64-5717-4562-b3fc-2c963f66afa6"
+                instance: "/transfers"
+        '409':
+          description: |
+            Transferencia duplicada. Pode ocorrer em dois cenarios:
+            1. A transferencia com esta `Idempotency-Key` esta PENDING (em processamento).
+            2. A transferencia ja foi concluida (COMPLETED ou FAILED) — neste caso o
+               body retorna o resultado anterior em vez de 409.
+
+            Retorna 409 apenas quando o status e PENDING para evitar processamento concorrente.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetail'
+              example:
+                type: "https://nexusbank.com/errors/duplicate-transfer"
+                title: "Transferencia duplicada"
+                status: 409
+                detail: "Transferencia com esta chave de idempotencia ja esta em processamento."
+                instance: "/transfers"
+        '422':
+          description: Saldo insuficiente na conta de origem
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetail'
+              example:
+                type: "https://nexusbank.com/errors/insufficient-funds"
+                title: "Saldo insuficiente"
+                status: 422
+                detail: "Saldo insuficiente. Disponivel: 100.00 BRL. Solicitado: 250.00 BRL."
+                instance: "/transfers"
+
+  /transfers/{transferId}:
+    get:
+      tags: [transfers]
+      operationId: getTransfer
+      summary: Consulta uma transferencia pelo ID
+      description: |
+        Retorna os dados completos de uma transferencia.
+        O usuario autenticado deve ser o titular da conta de origem da transferencia.
+        Use este endpoint para polling de status apos iniciar uma transferencia.
+      parameters:
+        - $ref: '#/components/parameters/transferIdParam'
+      responses:
+        '200':
+          description: Dados da transferencia
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TransferResponse'
+              example:
+                transferId: "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+                sourceAccountId: "7c9e6679-7425-40de-944b-e07fc1f90ae7"
+                targetAccountId: "3fa85f64-5717-4562-b3fc-2c963f66afa6"
+                amount: 250.00
+                currency: "BRL"
+                paymentType: "INTERNAL"
+                status: "COMPLETED"
+                idempotencyKey: "550e8400-e29b-41d4-a716-446655440000"
+                createdAt: "2026-07-05T10:00:00Z"
+                completedAt: "2026-07-05T10:00:02Z"
+                failureReason: null
+        '401':
+          description: Token ausente ou invalido
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetail'
+              example:
+                type: "https://nexusbank.com/errors/unauthorized"
+                title: "Nao autorizado"
+                status: 401
+                detail: "Token de acesso ausente ou invalido."
+                instance: "/transfers/a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+        '403':
+          description: Usuario nao e titular da conta de origem desta transferencia
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetail'
+              example:
+                type: "https://nexusbank.com/errors/account-access-denied"
+                title: "Acesso negado"
+                status: 403
+                detail: "Voce nao tem permissao para acessar esta transferencia."
+                instance: "/transfers/a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+        '404':
+          description: Transferencia nao encontrada
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetail'
+              example:
+                type: "https://nexusbank.com/errors/transfer-not-found"
+                title: "Transferencia nao encontrada"
+                status: 404
+                detail: "Transferencia nao encontrada: a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+                instance: "/transfers/a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  parameters:
+    idempotencyKeyHeader:
+      name: Idempotency-Key
+      in: header
+      required: true
+      description: |
+        UUID gerado pelo cliente para garantir idempotencia.
+        Requisicoes com a mesma chave retornam o mesmo resultado sem processar novamente.
+        O cliente deve gerar um novo UUID por tentativa de transferencia diferente.
+      schema:
+        type: string
+        format: uuid
+      example: "550e8400-e29b-41d4-a716-446655440000"
+
+    transferIdParam:
+      name: transferId
+      in: path
+      required: true
+      description: Identificador UUID da transferencia
+      schema:
+        type: string
+        format: uuid
+      example: "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+
+  schemas:
+    TransferRequest:
+      type: object
+      required: [sourceAccountId, targetAccountId, amount, currency, paymentType]
+      properties:
+        sourceAccountId:
+          type: string
+          format: uuid
+          description: |
+            Identificador da conta debitada. Deve pertencer ao usuario autenticado.
+            O frontend obtem este ID listando as contas do usuario via GET /accounts.
+          example: "7c9e6679-7425-40de-944b-e07fc1f90ae7"
+        targetAccountId:
+          type: string
+          format: uuid
+          description: Identificador da conta creditada (destino da transferencia)
+          example: "3fa85f64-5717-4562-b3fc-2c963f66afa6"
+        amount:
+          type: number
+          format: double
+          description: Valor da transferencia. Deve ser maior que zero.
+          minimum: 0.01
+          example: 250.00
+        currency:
+          type: string
+          enum: [BRL, USD, EUR]
+          description: Moeda da transferencia. Deve coincidir com a moeda da conta de origem.
+          example: "BRL"
+        paymentType:
+          $ref: '#/components/schemas/PaymentType'
+        description:
+          type: string
+          maxLength: 140
+          description: Descricao opcional da transferencia (aparece no extrato)
+          example: "Pagamento aluguel"
+
+    TransferResponse:
+      type: object
+      required: [transferId, sourceAccountId, targetAccountId, amount, currency, paymentType, status, idempotencyKey, createdAt]
+      properties:
+        transferId:
+          type: string
+          format: uuid
+          description: Identificador unico da transferencia
+          example: "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+        sourceAccountId:
+          type: string
+          format: uuid
+          description: Conta debitada
+          example: "7c9e6679-7425-40de-944b-e07fc1f90ae7"
+        targetAccountId:
+          type: string
+          format: uuid
+          description: Conta creditada
+          example: "3fa85f64-5717-4562-b3fc-2c963f66afa6"
+        amount:
+          type: number
+          format: double
+          description: Valor da transferencia
+          example: 250.00
+        currency:
+          type: string
+          enum: [BRL, USD, EUR]
+          description: Moeda da transferencia
+          example: "BRL"
+        paymentType:
+          $ref: '#/components/schemas/PaymentType'
+        status:
+          $ref: '#/components/schemas/TransferStatus'
+        idempotencyKey:
+          type: string
+          format: uuid
+          description: Chave de idempotencia usada nesta transferencia
+          example: "550e8400-e29b-41d4-a716-446655440000"
+        createdAt:
+          type: string
+          format: date-time
+          description: Timestamp de criacao da transferencia (ISO 8601 UTC)
+          example: "2026-07-05T10:00:00Z"
+        completedAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: Timestamp de conclusao da transferencia (null se ainda PENDING)
+          example: "2026-07-05T10:00:02Z"
+        failureReason:
+          type: string
+          nullable: true
+          description: Motivo da falha (null se nao FAILED)
+          example: null
+
+    PaymentType:
+      type: string
+      enum: [INTERNAL, PIX, TED]
+      description: |
+        Tipo de transferencia:
+        - `INTERNAL` — entre contas do proprio banco Nexus
+        - `PIX` — pagamento instantaneo (simulado nesta versao)
+        - `TED` — transferencia eletronica disponivel (simulado nesta versao)
+      example: "INTERNAL"
+
+    TransferStatus:
+      type: string
+      enum: [PENDING, COMPLETED, FAILED, COMPENSATION_FAILED]
+      description: |
+        Status da transferencia:
+        - `PENDING` — iniciada, aguardando processamento assincrono
+        - `COMPLETED` — debito e credito realizados com sucesso
+        - `FAILED` — falhou e foi compensada (debito estornado)
+        - `COMPENSATION_FAILED` — falhou e a compensacao tambem falhou (requer intervencao manual)
+      example: "COMPLETED"
+
+    ProblemDetail:
+      type: object
+      description: Erro no formato RFC 9457
+      properties:
+        type:
+          type: string
+          format: uri
+          description: URI que identifica o tipo do problema
+          example: "https://nexusbank.com/errors/insufficient-funds"
+        title:
+          type: string
+          description: Descricao breve do problema
+          example: "Saldo insuficiente"
+        status:
+          type: integer
+          description: Codigo HTTP do erro
+          example: 422
+        detail:
+          type: string
+          description: Explicacao legivel para o usuario
+          example: "Saldo insuficiente. Disponivel: 100.00 BRL. Solicitado: 250.00 BRL."
+        instance:
+          type: string
+          format: uri
+          description: URI da requisicao que gerou o problema
+          example: "/transfers"
