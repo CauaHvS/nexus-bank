@@ -26,6 +26,8 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
+
 @Service
 public class InitiateTransferUseCase {
 
@@ -75,12 +77,16 @@ public class InitiateTransferUseCase {
         Money amount = Money.of(command.amount(), Currency.valueOf(command.currency()));
 
         // 1. Persistir transferência (status SCHEDULED ou PENDING dependendo do scheduledFor)
+        // Os eventos de domínio são capturados antes do save, pois toDomain() reconstitui
+        // o agregado sem eventos — o repositório não deve transportar estado efêmero.
         Transfer transfer;
+        List<Object> pendingEvents;
         try {
-            transfer = Transfer.initiate(
+            Transfer newTransfer = Transfer.initiate(
                     command.sourceAccountId(), command.targetAccountId(),
                     amount, key, PaymentType.valueOf(command.type()), command.scheduledFor());
-            transfer = transferRepository.save(transfer);
+            pendingEvents = newTransfer.pullDomainEvents();
+            transfer = transferRepository.save(newTransfer);
         } catch (AccountConcurrentModificationException e) {
             metrics.optimisticLockConflict();
             throw e;
@@ -132,8 +138,7 @@ public class InitiateTransferUseCase {
 
         // 4. Publicar evento via Outbox (atomicamente com a transação)
         try {
-            var events = transfer.pullDomainEvents();
-            for (Object event : events) {
+            for (Object event : pendingEvents) {
                 String payload = objectMapper.writeValueAsString(event);
                 outboxRepository.save(transfer.getId().toString(),
                         event.getClass().getSimpleName(), payload);

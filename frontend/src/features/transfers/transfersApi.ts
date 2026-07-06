@@ -30,9 +30,13 @@ export interface TransferResponse {
 
 export async function initiateTransfer(data: TransferRequest): Promise<TransferResponse> {
   const idempotencyKey = crypto.randomUUID()
-  const response = await apiClient.post<TransferResponse>('/transfers', data, {
-    headers: { 'Idempotency-Key': idempotencyKey },
-  })
+  // O backend espera o campo como `type`; o formulário usa `paymentType` internamente
+  const { paymentType, ...rest } = data
+  const response = await apiClient.post<TransferResponse>(
+    '/transfers',
+    { ...rest, type: paymentType },
+    { headers: { 'Idempotency-Key': idempotencyKey } },
+  )
   return response.data
 }
 

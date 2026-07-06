@@ -26,6 +26,11 @@ apiClient.interceptors.response.use(
   r => r,
   async (error) => {
     const original = error.config
+    // Endpoints de autenticação nunca devem disparar refresh: o 401 é credencial inválida
+    const AUTH_ENDPOINTS = ['/auth/login', '/auth/register', '/auth/refresh', '/auth/logout']
+    if (AUTH_ENDPOINTS.some(p => original?.url?.includes(p))) {
+      return Promise.reject(error)
+    }
     if (error.response?.status !== 401 || original._retry) {
       return Promise.reject(error)
     }
