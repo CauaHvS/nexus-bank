@@ -24,7 +24,9 @@ jobs:
           cache: 'maven'
 
       - name: Build, testes e verificação de módulos
-        run: ./mvnw clean verify -B
+        run: |
+          chmod +x mvnw
+          ./mvnw clean verify -B
 
       - name: Publicar relatório de testes
         if: failure()
@@ -38,7 +40,7 @@ jobs:
   # 2. Frontend: lint + testes unitários + build
   # ------------------------------------------------------------------
   frontend:
-    name: Frontend (Node 20 + Vite)
+    name: Frontend (Node 22 + Vite)
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -47,10 +49,10 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Configurar Node 20
+      - name: Configurar Node 22
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '22'
           cache: 'npm'
           cache-dependency-path: frontend/package-lock.json
 
@@ -94,10 +96,10 @@ jobs:
           timeout 60 bash -c \
             'until curl -sf http://localhost:80 > /dev/null; do sleep 3; done'
 
-      - name: Configurar Node 20
+      - name: Configurar Node 22
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '22'
           cache: 'npm'
           cache-dependency-path: e2e/package-lock.json
 
