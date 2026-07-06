@@ -103,6 +103,24 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
         return pd;
     }
 
+    @ExceptionHandler(io.github.resilience4j.ratelimiter.RequestNotPermitted.class)
+    ProblemDetail handleRateLimit(io.github.resilience4j.ratelimiter.RequestNotPermitted ex) {
+        ProblemDetail pd = ProblemDetail.forStatusAndDetail(HttpStatus.TOO_MANY_REQUESTS,
+                "Limite de requisições atingido. Tente novamente em breve.");
+        pd.setType(URI.create("/errors/rate-limit-exceeded"));
+        pd.setTitle("Taxa de requisições excedida");
+        return pd;
+    }
+
+    @ExceptionHandler(io.github.resilience4j.bulkhead.BulkheadFullException.class)
+    ProblemDetail handleBulkhead(io.github.resilience4j.bulkhead.BulkheadFullException ex) {
+        ProblemDetail pd = ProblemDetail.forStatusAndDetail(HttpStatus.SERVICE_UNAVAILABLE,
+                "Serviço temporariamente sobrecarregado.");
+        pd.setType(URI.create("/errors/service-unavailable"));
+        pd.setTitle("Serviço indisponível");
+        return pd;
+    }
+
     @Override
     protected ResponseEntity<Object> handleMethodArgumentNotValid(
             MethodArgumentNotValidException ex, HttpHeaders headers,
