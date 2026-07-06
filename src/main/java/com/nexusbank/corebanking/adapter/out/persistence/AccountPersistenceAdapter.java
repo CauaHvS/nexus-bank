@@ -18,7 +18,14 @@ class AccountPersistenceAdapter implements AccountRepository {
 
     @Override
     public Account save(Account account) {
-        return toDomain(jpa.save(toEntity(account)));
+        AccountJpaEntity entity = jpa.findById(account.getId().value())
+                .map(existing -> {
+                    existing.balance = account.getBalance().amount();
+                    existing.status = account.getStatus();
+                    return existing;
+                })
+                .orElseGet(() -> toEntity(account));
+        return toDomain(jpa.save(entity));
     }
 
     @Override

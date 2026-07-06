@@ -1,0 +1,2 @@
+ALTER TABLE identity.users
+    ALTER COLUMN cpf TYPE VARCHAR(11) USING cpf::VARCHAR;
