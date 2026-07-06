@@ -1,7 +1,5 @@
 package com.nexusbank.infrastructure.outbox;
 
-import com.nexusbank.payments.domain.port.out.OutboxMessage;
-import com.nexusbank.payments.domain.port.out.OutboxRepository;
 import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
 import io.github.resilience4j.retry.annotation.Retry;
 import org.slf4j.Logger;
@@ -14,41 +12,68 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
 
 /**
- * Poller que lê eventos não-publicados do Outbox e os envia ao Kafka.
+ * Poller que lê eventos não-publicados dos Outboxes de todos os módulos produtores e os envia ao Kafka.
  * Roda a cada 2 segundos. Garante entrega at-least-once.
- * A publicação individual usa Retry + CircuitBreaker do Resilience4j.
+ * Suporta payments e corebanking como módulos produtores.
  */
 @Component
 public class OutboxPoller {
 
     private static final Logger log = LoggerFactory.getLogger(OutboxPoller.class);
 
-    private final OutboxRepository outboxRepository;
+    private final com.nexusbank.payments.domain.port.out.OutboxRepository paymentsOutbox;
+    private final com.nexusbank.corebanking.domain.port.out.OutboxRepository coreBankingOutbox;
     private final KafkaTemplate<String, String> kafkaTemplate;
 
-    public OutboxPoller(OutboxRepository outboxRepository,
+    public OutboxPoller(com.nexusbank.payments.domain.port.out.OutboxRepository paymentsOutbox,
+                        com.nexusbank.corebanking.domain.port.out.OutboxRepository coreBankingOutbox,
                         KafkaTemplate<String, String> kafkaTemplate) {
-        this.outboxRepository = outboxRepository;
+        this.paymentsOutbox = paymentsOutbox;
+        this.coreBankingOutbox = coreBankingOutbox;
         this.kafkaTemplate = kafkaTemplate;
     }
 
     @Scheduled(fixedDelay = 2000)
     @Transactional
     public void poll() {
-        List<OutboxMessage> unpublished = outboxRepository.findUnpublished();
+        pollRepository(paymentsOutbox);
+        pollCoreBankingRepository(coreBankingOutbox);
+    }
+
+    private void pollRepository(com.nexusbank.payments.domain.port.out.OutboxRepository repository) {
+        List<com.nexusbank.payments.domain.port.out.OutboxMessage> unpublished = repository.findUnpublished();
         if (unpublished.isEmpty()) return;
 
-        log.debug("Outbox: {} eventos para publicar", unpublished.size());
+        log.debug("Outbox payments: {} eventos para publicar", unpublished.size());
 
-        for (OutboxMessage entry : unpublished) {
+        for (com.nexusbank.payments.domain.port.out.OutboxMessage entry : unpublished) {
             String topic = resolveTopicFor(entry.eventType());
             try {
                 publishToKafka(topic, entry.aggregateId(), entry.payload());
-                outboxRepository.markPublished(entry.id());
-                log.debug("Evento publicado: tipo={} aggregateId={} topic={}",
+                repository.markPublished(entry.id());
+                log.debug("Evento payments publicado: tipo={} aggregateId={} topic={}",
                         entry.eventType(), entry.aggregateId(), topic);
             } catch (Exception e) {
-                // Falha já foi logada no fallback; evento permanece no outbox para nova tentativa
+                // Falha já logada no fallback; evento permanece no outbox para nova tentativa
+            }
+        }
+    }
+
+    private void pollCoreBankingRepository(com.nexusbank.corebanking.domain.port.out.OutboxRepository repository) {
+        List<com.nexusbank.corebanking.domain.port.out.OutboxMessage> unpublished = repository.findUnpublished();
+        if (unpublished.isEmpty()) return;
+
+        log.debug("Outbox corebanking: {} eventos para publicar", unpublished.size());
+
+        for (com.nexusbank.corebanking.domain.port.out.OutboxMessage entry : unpublished) {
+            String topic = resolveTopicFor(entry.eventType());
+            try {
+                publishToKafka(topic, entry.aggregateId(), entry.payload());
+                repository.markPublished(entry.id());
+                log.debug("Evento corebanking publicado: tipo={} aggregateId={} topic={}",
+                        entry.eventType(), entry.aggregateId(), topic);
+            } catch (Exception e) {
+                // Falha já logada no fallback; evento permanece no outbox para nova tentativa
             }
         }
     }
@@ -71,7 +96,8 @@ public class OutboxPoller {
             case "TransferCompleted"   -> "payments.transfer.completed";
             case "TransferFailed"      -> "payments.transfer.failed";
             case "TransferCompensated" -> "payments.transfer.compensated";
-            default -> "payments.events";
+            case "AccountOpened"       -> "corebanking.account.opened";
+            default -> "events.unknown";
         };
     }
 }

@@ -3,8 +3,10 @@
         "identity :: identity-web",
         "identity :: identity-exceptions",
         "corebanking :: corebanking-exceptions",
+        "corebanking :: corebanking-outbox",
         "payments :: payments-exceptions",
-        "payments :: payments-ports"
+        "payments :: payments-ports",
+        "notifications :: notifications-exceptions"
     }
 )
 package com.nexusbank.infrastructure;

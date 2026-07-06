@@ -2,6 +2,7 @@ package com.nexusbank.infrastructure.exception;
 
 import com.nexusbank.corebanking.domain.exception.*;
 import com.nexusbank.identity.domain.exception.*;
+import com.nexusbank.notifications.domain.exception.NotificationNotFoundException;
 import com.nexusbank.payments.domain.exception.*;
 import org.springframework.http.*;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -100,6 +101,14 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
         ProblemDetail pd = ProblemDetail.forStatusAndDetail(HttpStatus.NOT_FOUND, ex.getMessage());
         pd.setType(URI.create("/errors/not-found"));
         pd.setTitle("Transferência não encontrada");
+        return pd;
+    }
+
+    @ExceptionHandler(NotificationNotFoundException.class)
+    ProblemDetail handleNotificationNotFound(NotificationNotFoundException ex) {
+        ProblemDetail pd = ProblemDetail.forStatusAndDetail(HttpStatus.NOT_FOUND, ex.getMessage());
+        pd.setType(URI.create("/errors/not-found"));
+        pd.setTitle("Notificação não encontrada");
         return pd;
     }
 
