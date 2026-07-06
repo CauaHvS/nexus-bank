@@ -13,7 +13,8 @@ import javax.sql.DataSource;
  * O auto-config do Spring (spring.flyway.enabled=false) é desabilitado para
  * evitar conflito com esses beans.
  *
- * Schemas gerenciados: identity, corebanking, payments, notifications, fraud.
+ * Schemas gerenciados: identity, corebanking, payments, fraud.
+ * O schema notifications é gerenciado pelo serviço extraído (notifications-service).
  */
 @Configuration
 public class FlywayConfig {
@@ -46,17 +47,6 @@ public class FlywayConfig {
                 .dataSource(dataSource)
                 .schemas("payments")
                 .locations("classpath:db/migration/payments")
-                .table("flyway_schema_history")
-                .baselineOnMigrate(true)
-                .load();
-    }
-
-    @Bean(initMethod = "migrate")
-    public Flyway notificationsFlyway(DataSource dataSource) {
-        return Flyway.configure()
-                .dataSource(dataSource)
-                .schemas("notifications")
-                .locations("classpath:db/migration/notifications")
                 .table("flyway_schema_history")
                 .baselineOnMigrate(true)
                 .load();

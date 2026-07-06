@@ -5,8 +5,7 @@
         "corebanking :: corebanking-exceptions",
         "corebanking :: corebanking-outbox",
         "payments :: payments-exceptions",
-        "payments :: payments-ports",
-        "notifications :: notifications-exceptions"
+        "payments :: payments-ports"
     }
 )
 package com.nexusbank.infrastructure;

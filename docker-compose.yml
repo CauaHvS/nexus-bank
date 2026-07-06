@@ -18,6 +18,8 @@ services:
       timeout: 5s
       retries: 5
       start_period: 10s
+    networks:
+      - nexusbank-net
     restart: unless-stopped
 
   redis:
@@ -33,6 +35,8 @@ services:
       timeout: 5s
       retries: 5
       start_period: 5s
+    networks:
+      - nexusbank-net
     restart: unless-stopped
 
   zookeeper:
@@ -42,6 +46,8 @@ services:
     environment:
       ZOOKEEPER_CLIENT_PORT: 2181
       ZOOKEEPER_TICK_TIME: 2000
+    networks:
+      - nexusbank-net
     restart: unless-stopped
 
   kafka:
@@ -52,10 +58,14 @@ services:
       - zookeeper
     ports:
       - "9092:9092"
+      - "9093:9093"
     environment:
       KAFKA_BROKER_ID: 1
       KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
-      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://localhost:9092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092,PLAINTEXT_HOST://localhost:9093
+      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092,PLAINTEXT_HOST://0.0.0.0:9093
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
       KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
     healthcheck:
@@ -64,7 +74,66 @@ services:
       timeout: 10s
       retries: 10
       start_period: 30s
+    networks:
+      - nexusbank-net
     restart: unless-stopped
+
+  nexus-bank-core:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: nexus-bank-core
+    profiles: [app]
+    ports:
+      - "8080:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      DB_URL: jdbc:postgresql://postgres:5432/nexusbank
+      DB_USERNAME: ${POSTGRES_USER:-nexus}
+      DB_PASSWORD: ${POSTGRES_PASSWORD:-nexus_secret}
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-redis}
+      KAFKA_SERVERS: kafka:9092
+      JWT_SECRET: ${JWT_SECRET:-default-secret-change-in-production}
+      JWT_ACCESS_TTL: ${JWT_ACCESS_TTL:-900}
+      JWT_REFRESH_TTL: ${JWT_REFRESH_TTL:-604800}
+    networks:
+      - nexusbank-net
+    restart: unless-stopped
+
+  nexus-bank-notifications:
+    build:
+      context: ./notifications-service
+      dockerfile: Dockerfile
+    container_name: nexus-bank-notifications
+    profiles: [app]
+    ports:
+      - "8081:8081"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      kafka:
+        condition: service_started
+    environment:
+      DB_URL: jdbc:postgresql://postgres:5432/nexusbank
+      DB_USERNAME: ${POSTGRES_USER:-nexus}
+      DB_PASSWORD: ${POSTGRES_PASSWORD:-nexus_secret}
+      KAFKA_SERVERS: kafka:9092
+      JWT_SECRET: ${JWT_SECRET:-default-secret-change-in-production}
+    networks:
+      - nexusbank-net
+    restart: unless-stopped
+
+networks:
+  nexusbank-net:
+    driver: bridge
 
 volumes:
   postgres_data:
