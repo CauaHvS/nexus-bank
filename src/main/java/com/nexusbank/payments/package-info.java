@@ -2,7 +2,8 @@
     allowedDependencies = {
         "corebanking",
         "corebanking :: corebanking-model",
-        "corebanking :: corebanking-exceptions"
+        "corebanking :: corebanking-exceptions",
+        "fraud"
     }
 )
 package com.nexusbank.payments;

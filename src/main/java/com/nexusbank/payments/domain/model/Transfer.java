@@ -92,12 +92,39 @@ public class Transfer {
     }
 
     public void fail(String reason) {
-        if (this.status != TransferStatus.PENDING && this.status != TransferStatus.SCHEDULED)
-            throw new IllegalStateException("Apenas transferências PENDING ou SCHEDULED podem falhar");
+        if (this.status != TransferStatus.PENDING && this.status != TransferStatus.SCHEDULED
+                && this.status != TransferStatus.UNDER_REVIEW)
+            throw new IllegalStateException(
+                    "Apenas transferências PENDING, SCHEDULED ou UNDER_REVIEW podem falhar");
         this.status = TransferStatus.FAILED;
         this.failureReason = reason;
         domainEvents.add(new TransferFailed(id, sourceAccountId, reason, Instant.now()));
     }
+
+    /**
+     * Marca a transferência como suspeita para revisão manual.
+     * Chamado pelo InitiateTransferUseCase quando Fraud retorna SUSPICIOUS.
+     * Não debita nem emite evento — o débito ocorre somente após aprovação.
+     */
+    public void markUnderReview() {
+        if (this.status != TransferStatus.PENDING)
+            throw new IllegalStateException("Apenas transferências PENDING podem ir para UNDER_REVIEW");
+        this.status = TransferStatus.UNDER_REVIEW;
+    }
+
+    /**
+     * Retorna a transferência para PENDING após aprovação manual de fraude.
+     * O débito será executado pelo ApproveUnderReviewUseCase imediatamente após.
+     */
+    public void activateFromReview() {
+        if (this.status != TransferStatus.UNDER_REVIEW)
+            throw new IllegalStateException("Transferência não está em UNDER_REVIEW: " + this.status);
+        this.status = TransferStatus.PENDING;
+        domainEvents.add(new TransferInitiated(id, sourceAccountId, targetAccountId,
+                amount, idempotencyKey, Instant.now()));
+    }
+
+    public boolean isUnderReview() { return status == TransferStatus.UNDER_REVIEW; }
 
     public void markCompensationFailed(String reason) {
         this.status = TransferStatus.COMPENSATION_FAILED;

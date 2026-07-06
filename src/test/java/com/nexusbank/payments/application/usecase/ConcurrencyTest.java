@@ -5,6 +5,8 @@ import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.nexusbank.corebanking.CoreBankingApi;
 import com.nexusbank.corebanking.domain.exception.AccountConcurrentModificationException;
 import com.nexusbank.corebanking.domain.model.Money;
+import com.nexusbank.fraud.FraudApi;
+import com.nexusbank.fraud.FraudDecision;
 import com.nexusbank.payments.application.dto.InitiateTransferCommand;
 import com.nexusbank.payments.application.dto.TransferResult;
 import com.nexusbank.payments.domain.model.IdempotencyKey;
@@ -46,6 +48,9 @@ class ConcurrencyTest {
     @Mock
     private CoreBankingApi coreBankingApi;
 
+    @Mock
+    private FraudApi fraudApi;
+
     private InitiateTransferUseCase useCase;
 
     private static final String SOURCE = "account-1";
@@ -56,7 +61,8 @@ class ConcurrencyTest {
     void setUp() {
         ObjectMapper objectMapper = new ObjectMapper();
         objectMapper.registerModule(new JavaTimeModule());
-        useCase = new InitiateTransferUseCase(transferRepository, outboxRepository, coreBankingApi, objectMapper);
+        when(fraudApi.evaluate(any())).thenReturn(FraudDecision.APPROVED);
+        useCase = new InitiateTransferUseCase(transferRepository, outboxRepository, coreBankingApi, fraudApi, objectMapper);
     }
 
     private InitiateTransferCommand buildCommand(String idempotencyKey) {

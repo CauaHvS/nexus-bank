@@ -5,6 +5,8 @@ import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.nexusbank.corebanking.CoreBankingApi;
 import com.nexusbank.corebanking.domain.model.Currency;
 import com.nexusbank.corebanking.domain.model.Money;
+import com.nexusbank.fraud.FraudApi;
+import com.nexusbank.fraud.FraudDecision;
 import com.nexusbank.payments.application.dto.InitiateTransferCommand;
 import com.nexusbank.payments.application.dto.TransferResult;
 import com.nexusbank.payments.domain.model.IdempotencyKey;
@@ -56,6 +58,9 @@ class SagaCompensationTest {
     @Mock
     private CoreBankingApi coreBankingApi;
 
+    @Mock
+    private FraudApi fraudApi;
+
     private InitiateTransferUseCase initiateUseCase;
     private CompensateTransferUseCase compensateUseCase;
 
@@ -70,8 +75,9 @@ class SagaCompensationTest {
         ObjectMapper objectMapper = new ObjectMapper();
         objectMapper.registerModule(new JavaTimeModule());
 
+        org.mockito.Mockito.lenient().when(fraudApi.evaluate(any())).thenReturn(FraudDecision.APPROVED);
         initiateUseCase = new InitiateTransferUseCase(
-                transferRepository, outboxRepository, coreBankingApi, objectMapper);
+                transferRepository, outboxRepository, coreBankingApi, fraudApi, objectMapper);
         compensateUseCase = new CompensateTransferUseCase(
                 transferRepository, outboxRepository, coreBankingApi, objectMapper);
     }

@@ -3,6 +3,8 @@ package com.nexusbank.payments.application.usecase;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.nexusbank.corebanking.CoreBankingApi;
+import com.nexusbank.fraud.FraudApi;
+import com.nexusbank.fraud.FraudDecision;
 import com.nexusbank.payments.application.dto.InitiateTransferCommand;
 import com.nexusbank.payments.application.dto.TransferResult;
 import com.nexusbank.payments.domain.exception.AccountAccessDeniedException;
@@ -49,6 +51,9 @@ class InitiateTransferUseCaseTest {
     @Mock
     private CoreBankingApi coreBankingApi;
 
+    @Mock
+    private FraudApi fraudApi;
+
     private InitiateTransferUseCase useCase;
 
     private static final String SOURCE = "acc-origem-001";
@@ -60,7 +65,9 @@ class InitiateTransferUseCaseTest {
     void setUp() {
         ObjectMapper objectMapper = new ObjectMapper();
         objectMapper.registerModule(new JavaTimeModule());
-        useCase = new InitiateTransferUseCase(transferRepository, outboxRepository, coreBankingApi, objectMapper);
+        // lenient: alguns testes não chegam ao evaluate() (idempotência, ownership, agendados)
+        org.mockito.Mockito.lenient().when(fraudApi.evaluate(any())).thenReturn(FraudDecision.APPROVED);
+        useCase = new InitiateTransferUseCase(transferRepository, outboxRepository, coreBankingApi, fraudApi, objectMapper);
     }
 
     private InitiateTransferCommand buildCommand(String idempotencyKey) {

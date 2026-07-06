@@ -1,6 +1,7 @@
 package com.nexusbank.infrastructure.exception;
 
 import com.nexusbank.corebanking.domain.exception.*;
+import com.nexusbank.fraud.FraudBlockedException;
 import com.nexusbank.identity.domain.exception.*;
 import com.nexusbank.payments.domain.exception.*;
 import org.springframework.http.*;
@@ -100,6 +101,27 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
         ProblemDetail pd = ProblemDetail.forStatusAndDetail(HttpStatus.NOT_FOUND, ex.getMessage());
         pd.setType(URI.create("/errors/not-found"));
         pd.setTitle("Transferência não encontrada");
+        return pd;
+    }
+
+    @ExceptionHandler(FraudBlockedException.class)
+    ProblemDetail handleFraudBlocked(FraudBlockedException ex) {
+        ProblemDetail pd = ProblemDetail.forStatusAndDetail(HttpStatus.UNPROCESSABLE_ENTITY,
+                "Transferência bloqueada por análise de risco. Score: " + ex.getScore());
+        pd.setType(URI.create("https://nexusbank.com/errors/fraud-blocked"));
+        pd.setTitle("Transferência bloqueada por fraude");
+        pd.setProperty("transferId", ex.getTransferId());
+        pd.setProperty("score", ex.getScore());
+        return pd;
+    }
+
+    @ExceptionHandler(TransferNotUnderReviewException.class)
+    ProblemDetail handleNotUnderReview(TransferNotUnderReviewException ex) {
+        ProblemDetail pd = ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, ex.getMessage());
+        pd.setType(URI.create("https://nexusbank.com/errors/transfer-not-under-review"));
+        pd.setTitle("Transferência não está em revisão");
+        pd.setProperty("transferId", ex.getTransferId());
+        pd.setProperty("currentStatus", ex.getCurrentStatus());
         return pd;
     }
 

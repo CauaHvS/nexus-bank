@@ -5,7 +5,8 @@
         "corebanking :: corebanking-exceptions",
         "corebanking :: corebanking-outbox",
         "payments :: payments-exceptions",
-        "payments :: payments-ports"
+        "payments :: payments-ports",
+        "fraud"
     }
 )
 package com.nexusbank.infrastructure;

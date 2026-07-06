@@ -4,6 +4,9 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.nexusbank.corebanking.CoreBankingApi;
 import com.nexusbank.corebanking.domain.model.Currency;
 import com.nexusbank.corebanking.domain.model.Money;
+import com.nexusbank.fraud.FraudApi;
+import com.nexusbank.fraud.FraudDecision;
+import com.nexusbank.fraud.FraudEvaluationRequest;
 import com.nexusbank.payments.application.dto.InitiateTransferCommand;
 import com.nexusbank.payments.application.dto.TransferResult;
 import com.nexusbank.payments.domain.exception.AccountAccessDeniedException;
@@ -26,15 +29,18 @@ public class InitiateTransferUseCase {
     private final TransferRepository transferRepository;
     private final OutboxRepository outboxRepository;
     private final CoreBankingApi coreBankingApi;
+    private final FraudApi fraudApi;
     private final ObjectMapper objectMapper;
 
     public InitiateTransferUseCase(TransferRepository transferRepository,
                                    OutboxRepository outboxRepository,
                                    CoreBankingApi coreBankingApi,
+                                   FraudApi fraudApi,
                                    ObjectMapper objectMapper) {
         this.transferRepository = transferRepository;
         this.outboxRepository = outboxRepository;
         this.coreBankingApi = coreBankingApi;
+        this.fraudApi = fraudApi;
         this.objectMapper = objectMapper;
     }
 
@@ -63,17 +69,35 @@ public class InitiateTransferUseCase {
                 amount, key, PaymentType.valueOf(command.type()), command.scheduledFor());
         transfer = transferRepository.save(transfer);
 
-        // Transferências agendadas não debitam nem geram Outbox agora — o job fará isso
+        // Transferências agendadas não avaliam fraude nem debitam agora — o job fará isso
         if (transfer.isScheduled()) {
             log.info("Transferência agendada: id={} para={}", transfer.getId(), transfer.getScheduledFor());
             return TransferResult.from(transfer);
         }
 
-        // 2. Debitar conta de origem (ainda na mesma transação)
+        // 2. Avaliação de fraude antes do débito
+        // FraudBlockedException é lançada internamente se score >= 70 (HTTP 422)
+        FraudDecision fraudDecision = fraudApi.evaluate(new FraudEvaluationRequest(
+                transfer.getId().value().toString(),
+                command.authenticatedUserId(),
+                command.sourceAccountId(),
+                command.targetAccountId(),
+                command.amount(),
+                command.type()
+        ));
+
+        if (fraudDecision == FraudDecision.SUSPICIOUS) {
+            transfer.markUnderReview();
+            transferRepository.save(transfer);
+            log.info("Transferência marcada como UNDER_REVIEW por suspeita de fraude: id={}", transfer.getId());
+            return TransferResult.from(transfer);
+        }
+
+        // 3. Debitar conta de origem (apenas para decisão APPROVED)
         coreBankingApi.debit(command.sourceAccountId(), amount,
                 "Transferência " + transfer.getId() + " - débito");
 
-        // 3. Publicar evento via Outbox (atomicamente com a transação)
+        // 4. Publicar evento via Outbox (atomicamente com a transação)
         try {
             var events = transfer.pullDomainEvents();
             for (Object event : events) {

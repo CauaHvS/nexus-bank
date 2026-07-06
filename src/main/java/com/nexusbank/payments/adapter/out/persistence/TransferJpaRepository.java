@@ -18,4 +18,5 @@ interface TransferJpaRepository extends JpaRepository<TransferJpaEntity, UUID> {
     List<TransferJpaEntity> findDueScheduled(@Param("now") Instant now);
 
     Optional<TransferJpaEntity> findByIdAndStatus(UUID id, TransferStatus status);
+
 }
