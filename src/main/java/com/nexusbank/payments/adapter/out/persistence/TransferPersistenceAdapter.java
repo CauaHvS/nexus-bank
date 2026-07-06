@@ -6,6 +6,8 @@ import com.nexusbank.payments.domain.model.*;
 import com.nexusbank.payments.domain.port.out.TransferRepository;
 import org.springframework.stereotype.Component;
 
+import java.time.Instant;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -33,6 +35,16 @@ class TransferPersistenceAdapter implements TransferRepository {
         return jpa.findByIdempotencyKey(key.value()).map(this::toDomain);
     }
 
+    @Override
+    public List<Transfer> findDueScheduled(Instant now) {
+        return jpa.findDueScheduled(now).stream().map(this::toDomain).toList();
+    }
+
+    @Override
+    public Optional<Transfer> findByIdAndStatus(String transferId, TransferStatus status) {
+        return jpa.findByIdAndStatus(UUID.fromString(transferId), status).map(this::toDomain);
+    }
+
     private TransferJpaEntity toEntity(Transfer t) {
         return new TransferJpaEntity(
                 t.getId().value(),
@@ -45,7 +57,8 @@ class TransferPersistenceAdapter implements TransferRepository {
                 t.getIdempotencyKey().value(),
                 t.getFailureReason(),
                 t.getCreatedAt(),
-                t.getCompletedAt());
+                t.getCompletedAt(),
+                t.getScheduledFor());
     }
 
     private Transfer toDomain(TransferJpaEntity e) {
@@ -59,6 +72,7 @@ class TransferPersistenceAdapter implements TransferRepository {
                 e.status,
                 e.failureReason,
                 e.createdAt,
-                e.completedAt);
+                e.completedAt,
+                e.scheduledFor);
     }
 }

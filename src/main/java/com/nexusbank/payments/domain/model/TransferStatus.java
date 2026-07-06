@@ -1,5 +1,5 @@
 package com.nexusbank.payments.domain.model;
 
 public enum TransferStatus {
-    PENDING, COMPLETED, FAILED, COMPENSATION_FAILED
+    SCHEDULED, PENDING, COMPLETED, FAILED, COMPENSATION_FAILED
 }

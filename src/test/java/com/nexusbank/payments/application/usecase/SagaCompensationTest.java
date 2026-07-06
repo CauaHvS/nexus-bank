@@ -130,6 +130,7 @@ class SagaCompensationTest {
                 TransferStatus.PENDING,
                 null,
                 transferPendingSalvo.getCreatedAt(),
+                null,
                 null
         );
 
@@ -219,6 +220,7 @@ class SagaCompensationTest {
                 TransferStatus.PENDING,
                 null,
                 transferPendingSalvo.getCreatedAt(),
+                null,
                 null
         );
 
@@ -257,6 +259,7 @@ class SagaCompensationTest {
                 TransferStatus.PENDING,
                 null,
                 Instant.now().minusSeconds(10),
+                null,
                 null
         );
 

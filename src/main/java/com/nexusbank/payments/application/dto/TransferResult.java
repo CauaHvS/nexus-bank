@@ -15,7 +15,8 @@ public record TransferResult(
         String currency,
         TransferStatus status,
         String idempotencyKey,
-        Instant createdAt
+        Instant createdAt,
+        Instant scheduledFor
 ) {
     public static TransferResult from(Transfer t) {
         return new TransferResult(
@@ -26,7 +27,8 @@ public record TransferResult(
                 t.getAmount().currency().name(),
                 t.getStatus(),
                 t.getIdempotencyKey().value(),
-                t.getCreatedAt()
+                t.getCreatedAt(),
+                t.getScheduledFor()
         );
     }
 }

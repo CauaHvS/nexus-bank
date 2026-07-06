@@ -2,6 +2,7 @@ package com.nexusbank.payments.adapter.in.web;
 
 import com.nexusbank.payments.application.dto.InitiateTransferCommand;
 import com.nexusbank.payments.application.dto.TransferResult;
+import com.nexusbank.payments.application.usecase.CancelScheduledTransferUseCase;
 import com.nexusbank.payments.application.usecase.GetTransferUseCase;
 import com.nexusbank.payments.application.usecase.InitiateTransferUseCase;
 import io.github.resilience4j.bulkhead.BulkheadFullException;
@@ -17,6 +18,7 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.math.BigDecimal;
+import java.time.Instant;
 
 @RestController
 @RequestMapping("/transfers")
@@ -24,10 +26,14 @@ public class TransferController {
 
     private final InitiateTransferUseCase initiateTransfer;
     private final GetTransferUseCase getTransfer;
+    private final CancelScheduledTransferUseCase cancelScheduledTransfer;
 
-    public TransferController(InitiateTransferUseCase initiateTransfer, GetTransferUseCase getTransfer) {
+    public TransferController(InitiateTransferUseCase initiateTransfer,
+                              GetTransferUseCase getTransfer,
+                              CancelScheduledTransferUseCase cancelScheduledTransfer) {
         this.initiateTransfer = initiateTransfer;
         this.getTransfer = getTransfer;
+        this.cancelScheduledTransfer = cancelScheduledTransfer;
     }
 
     record TransferRequest(
@@ -36,7 +42,8 @@ public class TransferController {
             @NotNull @DecimalMin("0.01") BigDecimal amount,
             @NotBlank String currency,
             @NotBlank String type,
-            String description
+            String description,
+            Instant scheduledFor
     ) {}
 
     @PostMapping
@@ -50,7 +57,7 @@ public class TransferController {
         return initiateTransfer.execute(new InitiateTransferCommand(
                 req.sourceAccountId(), req.targetAccountId(), req.amount(),
                 req.currency(), req.type(), idempotencyKey, req.description(),
-                authenticatedUserId));
+                authenticatedUserId, req.scheduledFor()));
     }
 
     TransferResult rateLimitFallback(
@@ -70,5 +77,13 @@ public class TransferController {
             @PathVariable String transferId,
             @AuthenticationPrincipal String authenticatedUserId) {
         return getTransfer.execute(transferId, authenticatedUserId);
+    }
+
+    @DeleteMapping("/{transferId}/schedule")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void cancelScheduled(
+            @PathVariable String transferId,
+            @AuthenticationPrincipal String authenticatedUserId) {
+        cancelScheduledTransfer.execute(transferId, authenticatedUserId);
     }
 }

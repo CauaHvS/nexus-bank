@@ -57,11 +57,17 @@ public class InitiateTransferUseCase {
 
         Money amount = Money.of(command.amount(), Currency.valueOf(command.currency()));
 
-        // 1. Persistir transferência como PENDING (na mesma transação)
+        // 1. Persistir transferência (status SCHEDULED ou PENDING dependendo do scheduledFor)
         Transfer transfer = Transfer.initiate(
                 command.sourceAccountId(), command.targetAccountId(),
-                amount, key, PaymentType.valueOf(command.type()));
+                amount, key, PaymentType.valueOf(command.type()), command.scheduledFor());
         transfer = transferRepository.save(transfer);
+
+        // Transferências agendadas não debitam nem geram Outbox agora — o job fará isso
+        if (transfer.isScheduled()) {
+            log.info("Transferência agendada: id={} para={}", transfer.getId(), transfer.getScheduledFor());
+            return TransferResult.from(transfer);
+        }
 
         // 2. Debitar conta de origem (ainda na mesma transação)
         coreBankingApi.debit(command.sourceAccountId(), amount,
@@ -79,8 +85,9 @@ public class InitiateTransferUseCase {
             throw new RuntimeException("Falha ao serializar evento para Outbox", e);
         }
 
-        log.info("Transferência iniciada: id={} valor={} origem={} destino={}",
-                transfer.getId(), amount, command.sourceAccountId(), command.targetAccountId());
+        log.info("Transferência iniciada: id={} valor={} tipo={} origem={} destino={}",
+                transfer.getId(), amount, transfer.getType(),
+                command.sourceAccountId(), command.targetAccountId());
 
         return TransferResult.from(transfer);
     }

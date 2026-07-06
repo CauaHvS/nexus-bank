@@ -45,11 +45,14 @@ class TransferJpaEntity {
     @Column(name = "completed_at")
     Instant completedAt;
 
+    @Column(name = "scheduled_for")
+    Instant scheduledFor;
+
     protected TransferJpaEntity() {}
 
     TransferJpaEntity(UUID id, UUID source, UUID target, BigDecimal amount, String currency,
                       PaymentType type, TransferStatus status, String idempotencyKey,
-                      String failureReason, Instant createdAt, Instant completedAt) {
+                      String failureReason, Instant createdAt, Instant completedAt, Instant scheduledFor) {
         this.id = id;
         this.sourceAccountId = source;
         this.targetAccountId = target;
@@ -61,5 +64,6 @@ class TransferJpaEntity {
         this.failureReason = failureReason;
         this.createdAt = createdAt;
         this.completedAt = completedAt;
+        this.scheduledFor = scheduledFor;
     }
 }

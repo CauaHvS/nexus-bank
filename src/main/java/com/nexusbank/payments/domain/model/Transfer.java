@@ -11,7 +11,8 @@ import java.util.List;
 
 /**
  * Agregado raiz do módulo Payments.
- * Representa uma transferência com sua máquina de estados: PENDING -> COMPLETED | FAILED.
+ * Máquina de estados: SCHEDULED -> PENDING -> COMPLETED | FAILED.
+ * Transferências sem scheduledFor (ou no passado) iniciam como PENDING diretamente.
  */
 public class Transfer {
 
@@ -25,11 +26,12 @@ public class Transfer {
     private String failureReason;
     private final Instant createdAt;
     private Instant completedAt;
+    private final Instant scheduledFor;
     private final List<Object> domainEvents = new ArrayList<>();
 
     private Transfer(TransferId id, String sourceAccountId, String targetAccountId,
                      Money amount, IdempotencyKey idempotencyKey, PaymentType type,
-                     TransferStatus status, Instant createdAt) {
+                     TransferStatus status, Instant createdAt, Instant scheduledFor) {
         this.id = id;
         this.sourceAccountId = sourceAccountId;
         this.targetAccountId = targetAccountId;
@@ -38,16 +40,46 @@ public class Transfer {
         this.type = type;
         this.status = status;
         this.createdAt = createdAt;
+        this.scheduledFor = scheduledFor;
     }
 
+    /**
+     * Cria uma transferência imediata (sem agendamento).
+     */
     public static Transfer initiate(String sourceAccountId, String targetAccountId,
                                     Money amount, IdempotencyKey idempotencyKey,
                                     PaymentType type) {
+        return initiate(sourceAccountId, targetAccountId, amount, idempotencyKey, type, null);
+    }
+
+    /**
+     * Cria uma transferência, agendada se scheduledFor for não nulo e no futuro.
+     */
+    public static Transfer initiate(String sourceAccountId, String targetAccountId,
+                                    Money amount, IdempotencyKey idempotencyKey,
+                                    PaymentType type, Instant scheduledFor) {
+        boolean isScheduled = scheduledFor != null && scheduledFor.isAfter(Instant.now());
+        TransferStatus initialStatus = isScheduled ? TransferStatus.SCHEDULED : TransferStatus.PENDING;
+
         Transfer t = new Transfer(TransferId.generate(), sourceAccountId, targetAccountId,
-                amount, idempotencyKey, type, TransferStatus.PENDING, Instant.now());
-        t.domainEvents.add(new TransferInitiated(t.id, sourceAccountId, targetAccountId,
-                amount, idempotencyKey, t.createdAt));
+                amount, idempotencyKey, type, initialStatus, Instant.now(), scheduledFor);
+
+        if (!isScheduled) {
+            t.domainEvents.add(new TransferInitiated(t.id, sourceAccountId, targetAccountId,
+                    amount, idempotencyKey, t.createdAt));
+        }
         return t;
+    }
+
+    /**
+     * Ativa uma transferência agendada, movendo-a para PENDING e gerando o evento de domínio.
+     */
+    public void activate() {
+        if (this.status != TransferStatus.SCHEDULED)
+            throw new IllegalStateException("Apenas transferências SCHEDULED podem ser ativadas");
+        this.status = TransferStatus.PENDING;
+        domainEvents.add(new TransferInitiated(id, sourceAccountId, targetAccountId,
+                amount, idempotencyKey, Instant.now()));
     }
 
     public void complete() {
@@ -60,8 +92,8 @@ public class Transfer {
     }
 
     public void fail(String reason) {
-        if (this.status != TransferStatus.PENDING)
-            throw new IllegalStateException("Apenas transferências PENDING podem falhar");
+        if (this.status != TransferStatus.PENDING && this.status != TransferStatus.SCHEDULED)
+            throw new IllegalStateException("Apenas transferências PENDING ou SCHEDULED podem falhar");
         this.status = TransferStatus.FAILED;
         this.failureReason = reason;
         domainEvents.add(new TransferFailed(id, reason, Instant.now()));
@@ -72,8 +104,9 @@ public class Transfer {
         this.failureReason = reason;
     }
 
-    public boolean isPending()   { return status == TransferStatus.PENDING; }
-    public boolean isCompleted() { return status == TransferStatus.COMPLETED; }
+    public boolean isPending()    { return status == TransferStatus.PENDING; }
+    public boolean isCompleted()  { return status == TransferStatus.COMPLETED; }
+    public boolean isScheduled()  { return status == TransferStatus.SCHEDULED; }
 
     public List<Object> pullDomainEvents() {
         var events = List.copyOf(domainEvents);
@@ -84,9 +117,9 @@ public class Transfer {
     public static Transfer reconstitute(TransferId id, String sourceAccountId, String targetAccountId,
                                         Money amount, IdempotencyKey idempotencyKey, PaymentType type,
                                         TransferStatus status, String failureReason,
-                                        Instant createdAt, Instant completedAt) {
+                                        Instant createdAt, Instant completedAt, Instant scheduledFor) {
         Transfer t = new Transfer(id, sourceAccountId, targetAccountId, amount,
-                idempotencyKey, type, status, createdAt);
+                idempotencyKey, type, status, createdAt, scheduledFor);
         t.failureReason = failureReason;
         t.completedAt = completedAt;
         return t;
@@ -102,4 +135,5 @@ public class Transfer {
     public String getFailureReason()             { return failureReason; }
     public Instant getCreatedAt()                { return createdAt; }
     public Instant getCompletedAt()              { return completedAt; }
+    public Instant getScheduledFor()             { return scheduledFor; }
 }

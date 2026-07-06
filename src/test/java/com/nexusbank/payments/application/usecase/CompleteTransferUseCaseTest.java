@@ -63,7 +63,7 @@ class CompleteTransferUseCaseTest {
                 "acc-origem-001", "acc-destino-002",
                 AMOUNT, new IdempotencyKey(idemKey),
                 PaymentType.INTERNAL, TransferStatus.PENDING,
-                null, java.time.Instant.now().minusSeconds(5), null);
+                null, java.time.Instant.now().minusSeconds(5), null, null);
     }
 
     @Test
@@ -113,7 +113,7 @@ class CompleteTransferUseCaseTest {
                 id, "acc-origem-001", "acc-destino-002",
                 AMOUNT, new IdempotencyKey("chave-complete-002"),
                 PaymentType.INTERNAL, TransferStatus.COMPLETED,
-                null, Instant.now().minusSeconds(60), Instant.now());
+                null, Instant.now().minusSeconds(60), Instant.now(), null);
 
         when(transferRepository.findById(any(TransferId.class)))
                 .thenReturn(Optional.of(transferCompleted));

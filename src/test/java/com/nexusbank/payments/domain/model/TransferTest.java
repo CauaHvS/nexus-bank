@@ -181,7 +181,7 @@ class TransferTest {
                 id, SOURCE, TARGET, AMOUNT, KEY, PaymentType.PIX,
                 TransferStatus.COMPLETED, null,
                 java.time.Instant.now().minusSeconds(60),
-                java.time.Instant.now());
+                java.time.Instant.now(), null);
 
         assertThat(transfer.getId()).isEqualTo(id);
         assertThat(transfer.getStatus()).isEqualTo(TransferStatus.COMPLETED);

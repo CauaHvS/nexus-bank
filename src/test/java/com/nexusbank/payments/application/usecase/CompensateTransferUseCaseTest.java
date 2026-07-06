@@ -64,7 +64,7 @@ class CompensateTransferUseCaseTest {
                 "acc-origem-001", "acc-destino-002",
                 AMOUNT, new IdempotencyKey(idemKey),
                 PaymentType.PIX, TransferStatus.PENDING,
-                null, java.time.Instant.now().minusSeconds(5), null);
+                null, java.time.Instant.now().minusSeconds(5), null, null);
     }
 
     @Test
