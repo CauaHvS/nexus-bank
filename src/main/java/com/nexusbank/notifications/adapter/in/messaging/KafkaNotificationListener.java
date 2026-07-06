@@ -89,17 +89,20 @@ public class KafkaNotificationListener {
     }
 
     private void handleTransferFailed(JsonNode data) {
-        // TransferFailed não carrega userId diretamente — usamos o aggregateId (transferId)
-        // O sourceAccountId está no Transfer, mas o payload de TransferFailed só tem transferId e reason.
-        // Sem userId não há como criar a notificação para o usuário correto — evento é logado.
-        String reason = data.path("reason").asText("Motivo não informado");
-        JsonNode transferIdNode = data.path("transferId");
-        String transferId = transferIdNode.isObject()
-                ? transferIdNode.path("value").asText()
-                : transferIdNode.asText();
-        log.warn("TransferFailed recebido (transferId={} reason={}) — sem userId no payload, notificação não criada.",
-                transferId, reason);
-        // Evolução futura: enriquecer o evento TransferFailed com sourceAccountId/userId.
+        String sourceAccountId = data.path("sourceAccountId").asText();
+        if (sourceAccountId.isBlank()) {
+            JsonNode transferIdNode = data.path("transferId");
+            String transferId = transferIdNode.isObject()
+                    ? transferIdNode.path("value").asText()
+                    : transferIdNode.asText();
+            log.warn("Evento TransferFailed sem sourceAccountId para transferência {}", transferId);
+            return;
+        }
+        createNotificationUseCase.execute(
+                sourceAccountId,
+                NotificationType.TRANSFER_FAILED,
+                "Transferência não realizada",
+                "Sua transferência falhou. O valor foi estornado para sua conta.");
     }
 
     private void handleAccountOpened(JsonNode data) {

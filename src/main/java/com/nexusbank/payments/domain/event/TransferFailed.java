@@ -6,5 +6,6 @@ import java.time.Instant;
 
 public record TransferFailed(
         TransferId transferId,
+        String sourceAccountId,
         String reason,
         Instant occurredAt) {}

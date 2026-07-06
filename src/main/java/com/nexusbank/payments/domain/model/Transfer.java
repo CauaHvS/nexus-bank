@@ -96,7 +96,7 @@ public class Transfer {
             throw new IllegalStateException("Apenas transferências PENDING ou SCHEDULED podem falhar");
         this.status = TransferStatus.FAILED;
         this.failureReason = reason;
-        domainEvents.add(new TransferFailed(id, reason, Instant.now()));
+        domainEvents.add(new TransferFailed(id, sourceAccountId, reason, Instant.now()));
     }
 
     public void markCompensationFailed(String reason) {

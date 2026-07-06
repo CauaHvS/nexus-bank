@@ -134,6 +134,7 @@ class TransferTest {
 
         TransferFailed event = (TransferFailed) events.get(0);
         assertThat(event.transferId()).isEqualTo(transfer.getId());
+        assertThat(event.sourceAccountId()).isEqualTo(SOURCE);
         assertThat(event.reason()).isEqualTo("Conta destino inativa");
         assertThat(event.occurredAt()).isNotNull();
     }

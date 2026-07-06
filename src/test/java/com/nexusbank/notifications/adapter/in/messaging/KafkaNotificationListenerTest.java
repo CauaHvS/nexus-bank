@@ -78,9 +78,34 @@ class KafkaNotificationListenerTest {
     }
 
     @Test
-    void onEvent_transferFailed_naoDeveCriarNotificacao() throws Exception {
-        // Conforme implementação: handleTransferFailed apenas loga, sem userId disponível
-        // — createNotificationUseCase NÃO deve ser chamado
+    void onEvent_transferFailed_deveCriarNotificacao() throws Exception {
+        // Arrange — sourceAccountId agora faz parte do payload TransferFailed
+        String sourceAccountId = "account-source-001";
+        String payload = """
+                {
+                    "transferId": {"value": "transfer-abc-999"},
+                    "sourceAccountId": "%s",
+                    "reason": "Saldo insuficiente"
+                }
+                """.formatted(sourceAccountId);
+
+        // Act
+        listener.processEvent("payments.transfer.failed", payload);
+
+        // Assert
+        ArgumentCaptor<String> userIdCaptor = ArgumentCaptor.forClass(String.class);
+        ArgumentCaptor<NotificationType> typeCaptor = ArgumentCaptor.forClass(NotificationType.class);
+
+        verify(createNotificationUseCase, times(1))
+                .execute(userIdCaptor.capture(), typeCaptor.capture(), anyString(), anyString());
+
+        assertThat(userIdCaptor.getValue()).isEqualTo(sourceAccountId);
+        assertThat(typeCaptor.getValue()).isEqualTo(NotificationType.TRANSFER_FAILED);
+    }
+
+    @Test
+    void onEvent_transferFailed_semSourceAccountId_naoDeveCriarNotificacao() throws Exception {
+        // Cobre o branch defensivo: payload antigo sem sourceAccountId — apenas loga, sem notificação
         String payload = """
                 {
                     "transferId": {"value": "transfer-abc-999"},
@@ -91,7 +116,7 @@ class KafkaNotificationListenerTest {
         // Act
         listener.processEvent("payments.transfer.failed", payload);
 
-        // Assert — use case NUNCA chamado (evolução futura quando evento tiver sourceAccountId)
+        // Assert
         verify(createNotificationUseCase, never()).execute(anyString(), any(), anyString(), anyString());
     }
 
