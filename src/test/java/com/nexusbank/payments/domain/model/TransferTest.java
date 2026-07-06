@@ -188,4 +188,66 @@ class TransferTest {
         assertThat(transfer.isCompleted()).isTrue();
         assertThat(transfer.pullDomainEvents()).isEmpty();
     }
+
+    // --- Transfer.initiate com scheduledFor ---
+
+    @Test
+    void initiate_comScheduledFor_deveRetornarStatusScheduled() {
+        java.time.Instant futuro = java.time.Instant.now().plusSeconds(3600);
+
+        Transfer transfer = Transfer.initiate(SOURCE, TARGET, AMOUNT, KEY, PaymentType.INTERNAL, futuro);
+
+        assertThat(transfer.getStatus()).isEqualTo(TransferStatus.SCHEDULED);
+        assertThat(transfer.isScheduled()).isTrue();
+        assertThat(transfer.getScheduledFor()).isEqualTo(futuro);
+    }
+
+    @Test
+    void initiate_semScheduledFor_deveRetornarStatusPending() {
+        Transfer transfer = Transfer.initiate(SOURCE, TARGET, AMOUNT, KEY, PaymentType.INTERNAL, null);
+
+        assertThat(transfer.getStatus()).isEqualTo(TransferStatus.PENDING);
+        assertThat(transfer.isPending()).isTrue();
+    }
+
+    // --- Transfer.activate ---
+
+    @Test
+    void activate_deveTransicionarDeScheduledParaPending() {
+        java.time.Instant futuro = java.time.Instant.now().plusSeconds(3600);
+        Transfer transfer = Transfer.initiate(SOURCE, TARGET, AMOUNT, KEY, PaymentType.INTERNAL, futuro);
+        transfer.pullDomainEvents(); // SCHEDULED nao emite evento, mas limpa por garantia
+
+        transfer.activate();
+
+        assertThat(transfer.getStatus()).isEqualTo(TransferStatus.PENDING);
+        assertThat(transfer.isPending()).isTrue();
+        // activate deve emitir TransferInitiated
+        List<Object> events = transfer.pullDomainEvents();
+        assertThat(events).hasSize(1);
+        assertThat(events.get(0)).isInstanceOf(TransferInitiated.class);
+    }
+
+    @Test
+    void activate_emTransferNaoScheduled_deveLancarIllegalStateException() {
+        Transfer transfer = Transfer.initiate(SOURCE, TARGET, AMOUNT, KEY, PaymentType.INTERNAL);
+        // status e PENDING
+
+        assertThatThrownBy(transfer::activate)
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("SCHEDULED");
+    }
+
+    // --- Transfer.fail em SCHEDULED ---
+
+    @Test
+    void fail_emTransferScheduled_devePermitirCancelamento() {
+        java.time.Instant futuro = java.time.Instant.now().plusSeconds(3600);
+        Transfer transfer = Transfer.initiate(SOURCE, TARGET, AMOUNT, KEY, PaymentType.INTERNAL, futuro);
+
+        transfer.fail("Cancelado pelo usuário");
+
+        assertThat(transfer.getStatus()).isEqualTo(TransferStatus.FAILED);
+        assertThat(transfer.getFailureReason()).isEqualTo("Cancelado pelo usuário");
+    }
 }

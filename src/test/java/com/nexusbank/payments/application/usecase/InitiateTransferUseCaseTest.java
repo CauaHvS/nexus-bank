@@ -24,6 +24,10 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import java.math.BigDecimal;
 import java.util.Optional;
 
+import org.mockito.ArgumentCaptor;
+
+import java.time.Instant;
+
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
@@ -145,6 +149,64 @@ class InitiateTransferUseCaseTest {
 
         assertThat(result.status()).isEqualTo(TransferStatus.COMPLETED);
         verify(coreBankingApi, never()).debit(anyString(), any(Money.class), anyString());
+    }
+
+    private InitiateTransferCommand buildCommandScheduled(String idempotencyKey, String type, Instant scheduledFor) {
+        return new InitiateTransferCommand(
+                SOURCE, TARGET,
+                new BigDecimal("500.00"), "BRL",
+                type, idempotencyKey,
+                "Transferencia agendada",
+                USER_ID,
+                scheduledFor
+        );
+    }
+
+    @Test
+    void execute_comScheduledFor_deveRetornarStatusScheduledSemDebitar() {
+        Instant umHoraAFrente = Instant.now().plusSeconds(3600);
+        InitiateTransferCommand command = buildCommandScheduled("key-sched-001", "INTERNAL", umHoraAFrente);
+
+        when(transferRepository.findByIdempotencyKey(any(IdempotencyKey.class)))
+                .thenReturn(Optional.empty());
+        when(coreBankingApi.isOwner(SOURCE, USER_ID)).thenReturn(true);
+        when(transferRepository.save(any(Transfer.class)))
+                .thenAnswer(inv -> inv.getArgument(0));
+
+        TransferResult result = useCase.execute(command);
+
+        assertThat(result.status()).isEqualTo(TransferStatus.SCHEDULED);
+        assertThat(result.scheduledFor()).isEqualTo(umHoraAFrente);
+
+        // transferencia agendada nao debita nem publica outbox imediatamente
+        verify(coreBankingApi, never()).debit(anyString(), any(Money.class), anyString());
+        verify(outboxRepository, never()).save(anyString(), anyString(), anyString());
+        verify(transferRepository).save(any(Transfer.class));
+    }
+
+    @Test
+    void execute_pixComScheduledFor_deveAgendarComPaymentTypePix() {
+        Instant umHoraAFrente = Instant.now().plusSeconds(3600);
+        InitiateTransferCommand command = buildCommandScheduled("key-pix-sched-001", "PIX", umHoraAFrente);
+
+        when(transferRepository.findByIdempotencyKey(any(IdempotencyKey.class)))
+                .thenReturn(Optional.empty());
+        when(coreBankingApi.isOwner(SOURCE, USER_ID)).thenReturn(true);
+
+        ArgumentCaptor<Transfer> captor = ArgumentCaptor.forClass(Transfer.class);
+        when(transferRepository.save(captor.capture()))
+                .thenAnswer(inv -> inv.getArgument(0));
+
+        TransferResult result = useCase.execute(command);
+
+        assertThat(result.status()).isEqualTo(TransferStatus.SCHEDULED);
+
+        Transfer transferSalvo = captor.getValue();
+        assertThat(transferSalvo.getType()).isEqualTo(PaymentType.PIX);
+        assertThat(transferSalvo.isScheduled()).isTrue();
+
+        verify(coreBankingApi, never()).debit(anyString(), any(Money.class), anyString());
+        verify(outboxRepository, never()).save(anyString(), anyString(), anyString());
     }
 
     @Test
