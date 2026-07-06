@@ -1,0 +1,312 @@
+openapi: 3.1.0
+info:
+  title: Nexus Bank - Fraud API
+  description: |
+    Endpoints do módulo Fraud.
+    Permite consultar avaliações de risco de transferências e executar revisões manuais
+    de transferências marcadas como UNDER_REVIEW.
+    Erros seguem RFC 9457 (ProblemDetail).
+  version: 1.0.0
+  contact:
+    name: Nexus Bank Engineering
+
+servers:
+  - url: http://localhost:8080
+    description: Desenvolvimento local
+
+tags:
+  - name: fraud-evaluations
+    description: Consulta de avaliações de risco
+  - name: fraud-reviews
+    description: Revisão manual de transferências suspeitas
+
+paths:
+  /fraud/evaluations/{transferId}:
+    get:
+      tags: [fraud-evaluations]
+      operationId: getFraudEvaluation
+      summary: Retorna a avaliação de risco de uma transferência
+      description: |
+        Consulta o resultado da avaliação de fraude registrada para a transferência
+        informada. Retorna 404 se nenhuma avaliação foi registrada (transferência
+        nunca passou pela análise de fraude ou não existe).
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: transferId
+          in: path
+          required: true
+          description: Identificador UUID da transferência
+          schema:
+            type: string
+            format: uuid
+            example: "3fa85f64-5717-4562-b3fc-2c963f66afa6"
+      responses:
+        "200":
+          description: Avaliação encontrada
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FraudEvaluationView"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /fraud/reviews/{transferId}/approve:
+    post:
+      tags: [fraud-reviews]
+      operationId: approveFraudReview
+      summary: Aprova revisão manual de transferência suspeita
+      description: |
+        Move a transferência de UNDER_REVIEW para PENDING, executa o débito na
+        conta de origem e aciona o fluxo de crédito. Somente usuários com role
+        ADMIN podem executar esta acao.
+
+        Idempotente: se a transferência já estiver em PENDING ou COMPLETED,
+        retorna 200 sem efeito colateral.
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: transferId
+          in: path
+          required: true
+          description: Identificador UUID da transferência
+          schema:
+            type: string
+            format: uuid
+            example: "3fa85f64-5717-4562-b3fc-2c963f66afa6"
+      responses:
+        "200":
+          description: Revisao aprovada com sucesso
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ReviewResult"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          description: Transferência não está em UNDER_REVIEW
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+              example:
+                type: "https://nexusbank.com/errors/transfer-not-under-review"
+                title: "Transferência não está em revisão"
+                status: 409
+                detail: "A transferência 3fa85f64 está em status COMPLETED e não pode ser revisada"
+                transferId: "3fa85f64-5717-4562-b3fc-2c963f66afa6"
+                currentStatus: "COMPLETED"
+
+  /fraud/reviews/{transferId}/reject:
+    post:
+      tags: [fraud-reviews]
+      operationId: rejectFraudReview
+      summary: Rejeita revisão manual de transferência suspeita
+      description: |
+        Move a transferência de UNDER_REVIEW para FAILED. Nenhum débito é realizado.
+        Somente usuários com role ADMIN podem executar esta acao.
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: transferId
+          in: path
+          required: true
+          description: Identificador UUID da transferência
+          schema:
+            type: string
+            format: uuid
+            example: "3fa85f64-5717-4562-b3fc-2c963f66afa6"
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RejectReviewRequest"
+      responses:
+        "200":
+          description: Revisao rejeitada com sucesso
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ReviewResult"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          description: Transferência não está em UNDER_REVIEW
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    FraudEvaluationView:
+      type: object
+      description: Resultado de uma avaliação de risco de fraude
+      required:
+        - evaluationId
+        - transferId
+        - userId
+        - score
+        - decision
+        - triggeredRules
+        - evaluatedAt
+      properties:
+        evaluationId:
+          type: string
+          format: uuid
+          description: Identificador da avaliacao
+          example: "9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6d"
+        transferId:
+          type: string
+          format: uuid
+          description: Identificador da transferência avaliada
+          example: "3fa85f64-5717-4562-b3fc-2c963f66afa6"
+        userId:
+          type: string
+          format: uuid
+          description: Identificador do usuario que iniciou a transferência
+          example: "1b9d6bcd-bbfd-4b2d-9b5d-ab8dfbbd4bed"
+        score:
+          type: integer
+          minimum: 0
+          maximum: 100
+          description: Score de risco calculado (0 = sem risco, 100 = risco máximo)
+          example: 65
+        decision:
+          type: string
+          enum: [APPROVED, SUSPICIOUS, BLOCKED]
+          description: |
+            Decisão tomada com base no score:
+            - APPROVED: score < 30, transferência prossegue normalmente
+            - SUSPICIOUS: 30 <= score < 70, transferência entra em UNDER_REVIEW
+            - BLOCKED: score >= 70, transferência é bloqueada (FraudBlockedException)
+          example: "SUSPICIOUS"
+        triggeredRules:
+          type: array
+          description: Nomes das regras que contribuíram para o score
+          items:
+            type: string
+          example: ["HighValueRule", "NewDestinationRule"]
+        evaluatedAt:
+          type: string
+          format: date-time
+          description: Momento da avaliacao (UTC)
+          example: "2026-07-05T14:30:00Z"
+
+    ReviewResult:
+      type: object
+      description: Resultado da acao de revisão manual
+      required:
+        - transferId
+        - newStatus
+        - reviewedAt
+      properties:
+        transferId:
+          type: string
+          format: uuid
+          example: "3fa85f64-5717-4562-b3fc-2c963f66afa6"
+        newStatus:
+          type: string
+          enum: [PENDING, FAILED]
+          description: Status resultante da revisão
+          example: "PENDING"
+        reviewedAt:
+          type: string
+          format: date-time
+          example: "2026-07-05T15:00:00Z"
+
+    RejectReviewRequest:
+      type: object
+      description: Dados opcionais para rejeição de revisão
+      properties:
+        reason:
+          type: string
+          maxLength: 500
+          description: Motivo da rejeição (armazenado como failureReason na transferência)
+          example: "Padrão de fraude confirmado pela equipe de segurança"
+
+    ProblemDetail:
+      type: object
+      description: Resposta de erro seguindo RFC 9457
+      required:
+        - type
+        - title
+        - status
+      properties:
+        type:
+          type: string
+          format: uri
+          example: "https://nexusbank.com/errors/not-found"
+        title:
+          type: string
+          example: "Recurso não encontrado"
+        status:
+          type: integer
+          example: 404
+        detail:
+          type: string
+          example: "Avaliação não encontrada para a transferência informada"
+
+  responses:
+    Unauthorized:
+      description: Token ausente ou inválido
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/ProblemDetail"
+          example:
+            type: "https://nexusbank.com/errors/unauthorized"
+            title: "Não autorizado"
+            status: 401
+
+    Forbidden:
+      description: Usuario sem permissão para esta operação
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/ProblemDetail"
+          example:
+            type: "https://nexusbank.com/errors/forbidden"
+            title: "Acesso negado"
+            status: 403
+            detail: "Apenas administradores podem realizar revisões de fraude"
+
+    BadRequest:
+      description: Requisição inválida
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/ProblemDetail"
+
+    NotFound:
+      description: Recurso não encontrado
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/ProblemDetail"
+          example:
+            type: "https://nexusbank.com/errors/not-found"
+            title: "Recurso não encontrado"
+            status: 404
+            detail: "Avaliação de fraude não encontrada para transferId: 3fa85f64-5717-4562-b3fc-2c963f66afa6"
