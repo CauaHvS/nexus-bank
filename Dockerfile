@@ -10,6 +10,6 @@ RUN ./mvnw package -DskipTests -q
 # Stage 2 — runtime
 FROM eclipse-temurin:21-jre-alpine
 WORKDIR /app
-COPY --from=build /app/target/nexus-bank-notifications-*.jar app.jar
-EXPOSE 8081
+COPY --from=build /app/target/nexus-bank-*.jar app.jar
+EXPOSE 8080
 ENTRYPOINT ["java", "-jar", "app.jar"]
