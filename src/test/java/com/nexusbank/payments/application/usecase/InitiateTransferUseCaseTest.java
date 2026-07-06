@@ -5,6 +5,7 @@ import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.nexusbank.corebanking.CoreBankingApi;
 import com.nexusbank.fraud.FraudApi;
 import com.nexusbank.fraud.FraudDecision;
+import com.nexusbank.payments.domain.port.out.TransferMetricsPort;
 import com.nexusbank.payments.application.dto.InitiateTransferCommand;
 import com.nexusbank.payments.application.dto.TransferResult;
 import com.nexusbank.payments.domain.exception.AccountAccessDeniedException;
@@ -17,6 +18,8 @@ import com.nexusbank.payments.domain.port.out.OutboxRepository;
 import com.nexusbank.payments.domain.port.out.TransferRepository;
 import com.nexusbank.corebanking.domain.model.Currency;
 import com.nexusbank.corebanking.domain.model.Money;
+import io.micrometer.tracing.Span;
+import io.micrometer.tracing.Tracer;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -54,6 +57,15 @@ class InitiateTransferUseCaseTest {
     @Mock
     private FraudApi fraudApi;
 
+    @Mock
+    private TransferMetricsPort metrics;
+
+    @Mock
+    private Tracer tracer;
+
+    @Mock
+    private Span span;
+
     private InitiateTransferUseCase useCase;
 
     private static final String SOURCE = "acc-origem-001";
@@ -67,7 +79,12 @@ class InitiateTransferUseCaseTest {
         objectMapper.registerModule(new JavaTimeModule());
         // lenient: alguns testes não chegam ao evaluate() (idempotência, ownership, agendados)
         org.mockito.Mockito.lenient().when(fraudApi.evaluate(any())).thenReturn(FraudDecision.APPROVED);
-        useCase = new InitiateTransferUseCase(transferRepository, outboxRepository, coreBankingApi, fraudApi, objectMapper);
+        org.mockito.Mockito.lenient().when(tracer.nextSpan()).thenReturn(span);
+        org.mockito.Mockito.lenient().when(span.name(any())).thenReturn(span);
+        org.mockito.Mockito.lenient().when(span.start()).thenReturn(span);
+        org.mockito.Mockito.lenient().when(span.tag(anyString(), anyString())).thenReturn(span);
+        org.mockito.Mockito.lenient().when(tracer.withSpan(any())).thenReturn(() -> {});
+        useCase = new InitiateTransferUseCase(transferRepository, outboxRepository, coreBankingApi, fraudApi, objectMapper, metrics, tracer);
     }
 
     private InitiateTransferCommand buildCommand(String idempotencyKey) {

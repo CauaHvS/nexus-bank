@@ -7,6 +7,9 @@ import com.nexusbank.corebanking.domain.model.Currency;
 import com.nexusbank.corebanking.domain.model.Money;
 import com.nexusbank.fraud.FraudApi;
 import com.nexusbank.fraud.FraudDecision;
+import com.nexusbank.payments.domain.port.out.TransferMetricsPort;
+import io.micrometer.tracing.Span;
+import io.micrometer.tracing.Tracer;
 import com.nexusbank.payments.application.dto.InitiateTransferCommand;
 import com.nexusbank.payments.application.dto.TransferResult;
 import com.nexusbank.payments.domain.model.IdempotencyKey;
@@ -61,6 +64,15 @@ class SagaCompensationTest {
     @Mock
     private FraudApi fraudApi;
 
+    @Mock
+    private TransferMetricsPort metrics;
+
+    @Mock
+    private Tracer tracer;
+
+    @Mock
+    private Span span;
+
     private InitiateTransferUseCase initiateUseCase;
     private CompensateTransferUseCase compensateUseCase;
 
@@ -76,10 +88,15 @@ class SagaCompensationTest {
         objectMapper.registerModule(new JavaTimeModule());
 
         org.mockito.Mockito.lenient().when(fraudApi.evaluate(any())).thenReturn(FraudDecision.APPROVED);
+        org.mockito.Mockito.lenient().when(tracer.nextSpan()).thenReturn(span);
+        org.mockito.Mockito.lenient().when(span.name(any())).thenReturn(span);
+        org.mockito.Mockito.lenient().when(span.start()).thenReturn(span);
+        org.mockito.Mockito.lenient().when(span.tag(anyString(), anyString())).thenReturn(span);
+        org.mockito.Mockito.lenient().when(tracer.withSpan(any())).thenReturn(() -> {});
         initiateUseCase = new InitiateTransferUseCase(
-                transferRepository, outboxRepository, coreBankingApi, fraudApi, objectMapper);
+                transferRepository, outboxRepository, coreBankingApi, fraudApi, objectMapper, metrics, tracer);
         compensateUseCase = new CompensateTransferUseCase(
-                transferRepository, outboxRepository, coreBankingApi, objectMapper);
+                transferRepository, outboxRepository, coreBankingApi, objectMapper, metrics);
     }
 
     private InitiateTransferCommand buildCommand(String idempotencyKey) {

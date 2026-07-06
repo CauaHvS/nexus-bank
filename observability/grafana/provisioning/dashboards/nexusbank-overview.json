@@ -1,0 +1,84 @@
+{
+  "uid": "nexusbank-overview",
+  "title": "NexusBank — Visão Geral",
+  "tags": ["nexusbank"],
+  "timezone": "browser",
+  "schemaVersion": 39,
+  "version": 1,
+  "refresh": "30s",
+  "time": { "from": "now-1h", "to": "now" },
+  "panels": [
+    {
+      "id": 1,
+      "title": "Taxa de transferências iniciadas (por minuto)",
+      "type": "timeseries",
+      "gridPos": { "x": 0, "y": 0, "w": 12, "h": 8 },
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "expr": "rate(nexusbank_transfers_initiated_total[1m])",
+          "legendFormat": "iniciadas/min"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "title": "Transferências por status",
+      "type": "timeseries",
+      "gridPos": { "x": 12, "y": 0, "w": 12, "h": 8 },
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "expr": "rate(nexusbank_transfers_completed_total[1m])",
+          "legendFormat": "concluídas/min"
+        },
+        {
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "expr": "rate(nexusbank_transfers_failed_total[1m])",
+          "legendFormat": "falhas/min"
+        },
+        {
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "expr": "rate(nexusbank_transfers_blocked_by_fraud_total[1m])",
+          "legendFormat": "bloqueadas fraude/min"
+        },
+        {
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "expr": "rate(nexusbank_transfers_under_review_total[1m])",
+          "legendFormat": "em revisão/min"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "title": "Latência HTTP p95 (s)",
+      "type": "timeseries",
+      "gridPos": { "x": 0, "y": 8, "w": 12, "h": 8 },
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "expr": "histogram_quantile(0.95, rate(http_server_requests_seconds_bucket{application=\"nexus-bank\"}[5m]))",
+          "legendFormat": "p95 nexus-bank"
+        },
+        {
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "expr": "histogram_quantile(0.95, rate(http_server_requests_seconds_bucket{application=\"nexus-bank-notifications\"}[5m]))",
+          "legendFormat": "p95 notifications"
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "title": "Conflitos de lock otimista (por minuto)",
+      "type": "timeseries",
+      "gridPos": { "x": 12, "y": 8, "w": 12, "h": 8 },
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "expr": "rate(nexusbank_transfers_optimistic_lock_conflicts_total[1m])",
+          "legendFormat": "conflitos/min"
+        }
+      ]
+    }
+  ]
+}

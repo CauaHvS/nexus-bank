@@ -3,6 +3,7 @@ package com.nexusbank.payments.application.usecase;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.nexusbank.corebanking.CoreBankingApi;
+import com.nexusbank.payments.domain.port.out.TransferMetricsPort;
 import com.nexusbank.corebanking.domain.model.Currency;
 import com.nexusbank.corebanking.domain.model.Money;
 import com.nexusbank.payments.domain.exception.TransferNotFoundException;
@@ -44,6 +45,9 @@ class CompleteTransferUseCaseTest {
     @Mock
     private CoreBankingApi coreBankingApi;
 
+    @Mock
+    private TransferMetricsPort metrics;
+
     private CompleteTransferUseCase useCase;
 
     private static final Money AMOUNT = Money.of(new BigDecimal("300.00"), Currency.BRL);
@@ -52,7 +56,7 @@ class CompleteTransferUseCaseTest {
     void setUp() {
         ObjectMapper objectMapper = new ObjectMapper();
         objectMapper.registerModule(new JavaTimeModule());
-        useCase = new CompleteTransferUseCase(transferRepository, outboxRepository, coreBankingApi, objectMapper);
+        useCase = new CompleteTransferUseCase(transferRepository, outboxRepository, coreBankingApi, objectMapper, metrics);
     }
 
     private Transfer criarTransferenciaPending(String idemKey) {

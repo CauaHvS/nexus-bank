@@ -7,6 +7,9 @@ import com.nexusbank.corebanking.domain.exception.AccountConcurrentModificationE
 import com.nexusbank.corebanking.domain.model.Money;
 import com.nexusbank.fraud.FraudApi;
 import com.nexusbank.fraud.FraudDecision;
+import com.nexusbank.payments.domain.port.out.TransferMetricsPort;
+import io.micrometer.tracing.Span;
+import io.micrometer.tracing.Tracer;
 import com.nexusbank.payments.application.dto.InitiateTransferCommand;
 import com.nexusbank.payments.application.dto.TransferResult;
 import com.nexusbank.payments.domain.model.IdempotencyKey;
@@ -51,6 +54,15 @@ class ConcurrencyTest {
     @Mock
     private FraudApi fraudApi;
 
+    @Mock
+    private TransferMetricsPort metrics;
+
+    @Mock
+    private Tracer tracer;
+
+    @Mock
+    private Span span;
+
     private InitiateTransferUseCase useCase;
 
     private static final String SOURCE = "account-1";
@@ -62,7 +74,12 @@ class ConcurrencyTest {
         ObjectMapper objectMapper = new ObjectMapper();
         objectMapper.registerModule(new JavaTimeModule());
         when(fraudApi.evaluate(any())).thenReturn(FraudDecision.APPROVED);
-        useCase = new InitiateTransferUseCase(transferRepository, outboxRepository, coreBankingApi, fraudApi, objectMapper);
+        org.mockito.Mockito.lenient().when(tracer.nextSpan()).thenReturn(span);
+        org.mockito.Mockito.lenient().when(span.name(any())).thenReturn(span);
+        org.mockito.Mockito.lenient().when(span.start()).thenReturn(span);
+        org.mockito.Mockito.lenient().when(span.tag(anyString(), anyString())).thenReturn(span);
+        org.mockito.Mockito.lenient().when(tracer.withSpan(any())).thenReturn(() -> {});
+        useCase = new InitiateTransferUseCase(transferRepository, outboxRepository, coreBankingApi, fraudApi, objectMapper, metrics, tracer);
     }
 
     private InitiateTransferCommand buildCommand(String idempotencyKey) {

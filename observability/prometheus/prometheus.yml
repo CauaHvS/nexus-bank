@@ -1,0 +1,13 @@
+global:
+  scrape_interval: 15s
+
+scrape_configs:
+  - job_name: nexus-bank-core
+    metrics_path: /actuator/prometheus
+    static_configs:
+      - targets: ['nexus-bank-core:8080']
+
+  - job_name: nexus-bank-notifications
+    metrics_path: /actuator/prometheus
+    static_configs:
+      - targets: ['nexus-bank-notifications:8081']
