@@ -79,6 +79,14 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
         return pd;
     }
 
+    @ExceptionHandler(AccountConcurrentModificationException.class)
+    ProblemDetail handleConcurrentModification(AccountConcurrentModificationException ex) {
+        ProblemDetail pd = ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, ex.getMessage());
+        pd.setType(URI.create("/errors/concurrent-modification"));
+        pd.setTitle("Conflito de concorrência");
+        return pd;
+    }
+
     @ExceptionHandler(DuplicateTransferException.class)
     ProblemDetail handleDuplicateTransfer(DuplicateTransferException ex) {
         ProblemDetail pd = ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, ex.getMessage());
