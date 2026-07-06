@@ -5,6 +5,7 @@ import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.nexusbank.corebanking.CoreBankingApi;
 import com.nexusbank.payments.application.dto.InitiateTransferCommand;
 import com.nexusbank.payments.application.dto.TransferResult;
+import com.nexusbank.payments.domain.exception.AccountAccessDeniedException;
 import com.nexusbank.payments.domain.exception.DuplicateTransferException;
 import com.nexusbank.payments.domain.model.IdempotencyKey;
 import com.nexusbank.payments.domain.model.PaymentType;
@@ -49,6 +50,7 @@ class InitiateTransferUseCaseTest {
     private static final String SOURCE = "acc-origem-001";
     private static final String TARGET = "acc-destino-002";
     private static final String IDEM_KEY = "chave-idempotente-001";
+    private static final String USER_ID = "usuario-dono-001";
 
     @BeforeEach
     void setUp() {
@@ -62,7 +64,8 @@ class InitiateTransferUseCaseTest {
                 SOURCE, TARGET,
                 new BigDecimal("500.00"), "BRL",
                 "INTERNAL", idempotencyKey,
-                "Pagamento de serviço"
+                "Pagamento de serviço",
+                USER_ID
         );
     }
 
@@ -72,6 +75,7 @@ class InitiateTransferUseCaseTest {
 
         when(transferRepository.findByIdempotencyKey(any(IdempotencyKey.class)))
                 .thenReturn(Optional.empty());
+        when(coreBankingApi.isOwner(SOURCE, USER_ID)).thenReturn(true);
 
         // save devolve o mesmo objeto que recebeu
         when(transferRepository.save(any(Transfer.class)))
@@ -88,6 +92,22 @@ class InitiateTransferUseCaseTest {
         verify(transferRepository).save(any(Transfer.class));
         verify(coreBankingApi).debit(anyString(), any(Money.class), anyString());
         verify(outboxRepository).save(anyString(), anyString(), anyString());
+    }
+
+    @Test
+    void execute_usuarioNaoDonoDaConta_deveLancarAccountAccessDeniedException() {
+        InitiateTransferCommand command = buildCommand(IDEM_KEY);
+
+        when(transferRepository.findByIdempotencyKey(any(IdempotencyKey.class)))
+                .thenReturn(Optional.empty());
+        when(coreBankingApi.isOwner(SOURCE, USER_ID)).thenReturn(false);
+
+        assertThatThrownBy(() -> useCase.execute(command))
+                .isInstanceOf(AccountAccessDeniedException.class)
+                .hasMessageContaining(SOURCE);
+
+        verify(coreBankingApi, never()).debit(anyString(), any(Money.class), anyString());
+        verify(outboxRepository, never()).save(anyString(), anyString(), anyString());
     }
 
     @Test
@@ -133,6 +153,7 @@ class InitiateTransferUseCaseTest {
 
         when(transferRepository.findByIdempotencyKey(any(IdempotencyKey.class)))
                 .thenReturn(Optional.empty());
+        when(coreBankingApi.isOwner(SOURCE, USER_ID)).thenReturn(true);
         when(transferRepository.save(any(Transfer.class)))
                 .thenAnswer(inv -> inv.getArgument(0));
 

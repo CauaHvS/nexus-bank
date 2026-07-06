@@ -2,6 +2,7 @@ package com.nexusbank.payments.adapter.in.web;
 
 import com.nexusbank.payments.application.dto.InitiateTransferCommand;
 import com.nexusbank.payments.application.dto.TransferResult;
+import com.nexusbank.payments.application.usecase.GetTransferUseCase;
 import com.nexusbank.payments.application.usecase.InitiateTransferUseCase;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.DecimalMin;
@@ -18,9 +19,11 @@ import java.math.BigDecimal;
 public class TransferController {
 
     private final InitiateTransferUseCase initiateTransfer;
+    private final GetTransferUseCase getTransfer;
 
-    public TransferController(InitiateTransferUseCase initiateTransfer) {
+    public TransferController(InitiateTransferUseCase initiateTransfer, GetTransferUseCase getTransfer) {
         this.initiateTransfer = initiateTransfer;
+        this.getTransfer = getTransfer;
     }
 
     record TransferRequest(
@@ -40,6 +43,14 @@ public class TransferController {
             @AuthenticationPrincipal String authenticatedUserId) {
         return initiateTransfer.execute(new InitiateTransferCommand(
                 req.sourceAccountId(), req.targetAccountId(), req.amount(),
-                req.currency(), req.type(), idempotencyKey, req.description()));
+                req.currency(), req.type(), idempotencyKey, req.description(),
+                authenticatedUserId));
+    }
+
+    @GetMapping("/{transferId}")
+    public TransferResult getTransfer(
+            @PathVariable String transferId,
+            @AuthenticationPrincipal String authenticatedUserId) {
+        return getTransfer.execute(transferId, authenticatedUserId);
     }
 }

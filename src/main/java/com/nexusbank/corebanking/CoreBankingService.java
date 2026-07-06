@@ -49,4 +49,12 @@ class CoreBankingService implements CoreBankingApi {
     public boolean accountExists(String accountId) {
         return accountRepository.findById(AccountId.of(accountId)).isPresent();
     }
+
+    @Override
+    @Transactional(readOnly = true)
+    public boolean isOwner(String accountId, String userId) {
+        return accountRepository.findById(AccountId.of(accountId))
+                .map(account -> account.getCustomerId().value().toString().equals(userId))
+                .orElse(false);
+    }
 }

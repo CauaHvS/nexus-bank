@@ -71,6 +71,14 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
         return pd;
     }
 
+    @ExceptionHandler(AccountAccessDeniedException.class)
+    ProblemDetail handleAccountAccessDenied(AccountAccessDeniedException ex) {
+        ProblemDetail pd = ProblemDetail.forStatusAndDetail(HttpStatus.FORBIDDEN, ex.getMessage());
+        pd.setType(URI.create("/errors/access-denied"));
+        pd.setTitle("Acesso negado");
+        return pd;
+    }
+
     @ExceptionHandler(DuplicateTransferException.class)
     ProblemDetail handleDuplicateTransfer(DuplicateTransferException ex) {
         ProblemDetail pd = ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, ex.getMessage());

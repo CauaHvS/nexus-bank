@@ -10,4 +10,5 @@ public interface CoreBankingApi {
     void debit(String accountId, Money amount, String description);
     void credit(String accountId, Money amount, String description);
     boolean accountExists(String accountId);
+    boolean isOwner(String accountId, String userId);
 }

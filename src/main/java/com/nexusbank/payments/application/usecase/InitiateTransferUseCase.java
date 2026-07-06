@@ -6,6 +6,7 @@ import com.nexusbank.corebanking.domain.model.Currency;
 import com.nexusbank.corebanking.domain.model.Money;
 import com.nexusbank.payments.application.dto.InitiateTransferCommand;
 import com.nexusbank.payments.application.dto.TransferResult;
+import com.nexusbank.payments.domain.exception.AccountAccessDeniedException;
 import com.nexusbank.payments.domain.exception.DuplicateTransferException;
 import com.nexusbank.payments.domain.model.IdempotencyKey;
 import com.nexusbank.payments.domain.model.PaymentType;
@@ -48,6 +49,10 @@ public class InitiateTransferUseCase {
             var t = existing.get();
             if (t.isPending()) throw new DuplicateTransferException(key.value());
             return TransferResult.from(t);
+        }
+
+        if (!coreBankingApi.isOwner(command.sourceAccountId(), command.authenticatedUserId())) {
+            throw new AccountAccessDeniedException(command.sourceAccountId());
         }
 
         Money amount = Money.of(command.amount(), Currency.valueOf(command.currency()));

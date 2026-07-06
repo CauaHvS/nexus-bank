@@ -9,5 +9,6 @@ public record InitiateTransferCommand(
         String currency,
         String type,
         String idempotencyKey,
-        String description
+        String description,
+        String authenticatedUserId
 ) {}
