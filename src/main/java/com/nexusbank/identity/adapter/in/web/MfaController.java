@@ -5,12 +5,16 @@ import com.nexusbank.identity.domain.model.UserId;
 import com.nexusbank.identity.domain.port.out.UserRepository;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
 
+@Tag(name = "MFA")
+@SecurityRequirement(name = "bearerAuth")
 @RestController
 @RequestMapping("/auth/mfa")
 public class MfaController {

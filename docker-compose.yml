@@ -110,6 +110,21 @@ services:
       - nexusbank-net
     restart: unless-stopped
 
+  nexus-bank-frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: nexus-bank-frontend
+    profiles: [app]
+    ports:
+      - "80:80"
+    depends_on:
+      - nexus-bank-core
+      - nexus-bank-notifications
+    networks:
+      - nexusbank-net
+    restart: unless-stopped
+
   nexus-bank-notifications:
     build:
       context: ./notifications-service

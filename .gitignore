@@ -20,3 +20,6 @@ docker/volumes/
 # Arquivos internos de desenvolvimento — não subir ao repositório público
 CLAUDE.md
 ROADMAP.md
+
+# Resultados dos testes de carga k6
+k6/results/

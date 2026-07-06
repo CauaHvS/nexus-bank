@@ -2,6 +2,8 @@ package com.nexusbank.payments.adapter.in.web;
 
 import com.nexusbank.payments.application.usecase.ApproveUnderReviewUseCase;
 import com.nexusbank.payments.application.usecase.RejectUnderReviewUseCase;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
@@ -17,6 +19,8 @@ import java.util.Map;
  * ApproveUnderReviewUseCase e RejectUnderReviewUseCase, ambos internos ao Payments.
  * Ver ADR-011.
  */
+@Tag(name = "Fraude")
+@SecurityRequirement(name = "bearerAuth")
 @RestController
 @RequestMapping("/fraud/reviews")
 class FraudReviewController {

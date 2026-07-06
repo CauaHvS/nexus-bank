@@ -20,12 +20,15 @@ export default defineConfig({
       use: { ...devices['Desktop Chrome'] },
     },
   ],
-  // Sobe o Vite dev server automaticamente se não estiver rodando
-  webServer: {
-    command: 'npm run dev',
-    cwd: '../frontend',
-    url: 'http://localhost:5173',
-    reuseExistingServer: true,
-    timeout: 30000,
-  },
+  // Em CI, a stack já está rodando via Docker Compose; não sobe o dev server.
+  // Localmente, sobe o Vite automaticamente se não estiver em execução.
+  webServer: process.env.CI
+    ? undefined
+    : {
+        command: 'npm run dev',
+        cwd: '../frontend',
+        url: 'http://localhost:5173',
+        reuseExistingServer: true,
+        timeout: 30000,
+      },
 })

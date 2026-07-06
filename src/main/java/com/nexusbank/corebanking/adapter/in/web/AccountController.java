@@ -14,6 +14,8 @@ import com.nexusbank.corebanking.domain.model.Currency;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.NotNull;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
@@ -23,6 +25,8 @@ import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 
+@Tag(name = "Contas")
+@SecurityRequirement(name = "bearerAuth")
 @RestController
 @RequestMapping("/accounts")
 public class AccountController {

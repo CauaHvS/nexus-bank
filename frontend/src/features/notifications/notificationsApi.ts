@@ -2,7 +2,7 @@ import axios from 'axios'
 import { authStore } from '@/store/authStore'
 
 const notificationsClient = axios.create({
-  baseURL: import.meta.env.VITE_NOTIFICATIONS_URL || 'http://localhost:8081',
+  baseURL: import.meta.env.VITE_NOTIFICATIONS_URL ?? 'http://localhost:8081',
   headers: { 'Content-Type': 'application/json' },
   timeout: 10000,
 })
