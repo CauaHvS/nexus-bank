@@ -7,6 +7,7 @@ import { DashboardPage } from '@/features/accounts/pages/DashboardPage'
 import { ContasPage } from '@/features/accounts/pages/ContasPage'
 import { CarteiraPage } from '@/features/accounts/pages/CarteiraPage'
 import { TransferPage } from '@/features/transfers/TransferPage'
+import { NotificationsPage } from '@/features/notifications/NotificationsPage'
 
 export const router = createBrowserRouter([
   // Rotas publicas (sem layout autenticado)
@@ -27,7 +28,7 @@ export const router = createBrowserRouter([
           // Placeholders para fases seguintes
           { path: 'transferencias', element: <TransferPage /> },
           { path: 'extrato', element: <div className="p-8 text-center text-gray-500">Extrato -- Fase 2 (em breve)</div> },
-          { path: 'notificacoes', element: <div className="p-8 text-center text-gray-500">Notificacoes -- Fase 4</div> },
+          { path: 'notificacoes', element: <NotificationsPage /> },
           { path: 'perfil', element: <div className="p-8 text-center text-gray-500">Perfil -- proximas fatias</div> },
         ],
       },
